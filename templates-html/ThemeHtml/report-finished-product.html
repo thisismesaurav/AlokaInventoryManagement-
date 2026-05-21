@@ -1,0 +1,114 @@
+<div class="content-page">
+     <div class="container-fluid">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="d-flex flex-wrap align-items-center justify-content-between mb-4">
+                    <div>
+                        <h4 class="mb-3">Finished Product Report</h4>
+                        <p class="mb-0">Filter and view finished product data by category, product name, and date.</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Filter Section -->
+            <div class="col-lg-12 mb-4">
+                <div class="card shadow-sm border-0" style="background-color: #f7f9fc; border-radius: 8px;">
+                    <div class="card-body p-3">
+                        <div class="row align-items-end">
+                            
+                            <!-- Category Filter -->
+                            <div class="col-md-3">
+                                <div class="form-group mb-0">
+                                    <label class="font-weight-bold mb-1" style="font-size: 13px; color: #555;">Select Category</label>
+                                    <select id="report-filter-category" class="form-control form-control-sm" style="border-radius: 4px;">
+                                        <option value="">-- All Categories --</option>
+                                        <!-- CATEGORY_OPTIONS -->
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- Product Name Filter (filtered by category) -->
+                            <div class="col-md-3">
+                                <div class="form-group mb-0">
+                                    <label class="font-weight-bold mb-1" style="font-size: 13px; color: #555;">Select Product Name</label>
+                                    <select id="report-filter-product" class="form-control form-control-sm" style="border-radius: 4px;">
+                                        <option value="">-- All Products --</option>
+                                        <!-- PRODUCT_DROPDOWN_OPTIONS -->
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Date Range Filter -->
+                            <div class="col-md-5">
+                                <div class="form-group mb-0">
+                                    <label class="font-weight-bold mb-1" style="font-size: 13px; color: #555;">Date Range</label>
+                                    <div class="d-flex">
+                                        <div class="flex-grow-1 mr-2">
+                                            <input type="date" id="report-filter-start-date" class="form-control form-control-sm" style="border-radius: 4px;" title="Start Date">
+                                        </div>
+                                        <div class="align-self-center mr-2" style="font-size: 13px; color: #888;">to</div>
+                                        <div class="flex-grow-1">
+                                            <input type="date" id="report-filter-end-date" class="form-control form-control-sm" style="border-radius: 4px;" title="End Date">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Clear Button -->
+                            <div class="col-md-1 text-right">
+                                <button type="button" id="btn-clear-product-filter" class="btn btn-sm btn-outline-danger" style="font-size: 12px; font-weight: bold; border-radius: 4px;" title="Reset Filters">
+                                    <i class="ri-refresh-line mr-0"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-12">
+                <div class="table-responsive rounded mb-3">
+                 <table class="report-product-table table mb-0 tbl-server-info">
+                     <thead class="bg-white text-uppercase">
+                         <tr class="ligth ligth-data">
+                             <th></th>
+                             <th>Produce Date</th>
+                             <th>Category</th>
+                             <th>Product</th>
+                             <th>Quantity</th>
+                             <th>Unit Cost</th>
+                             <th>Total Cost</th>
+                             <th>Employee</th>
+                         </tr>
+                     </thead>
+                     <tbody class="ligth-body">
+                         <!-- Injected dynamically via index.php -->
+                     </tbody>
+                     <tfoot>
+                         <tr class="bg-light font-weight-bold" style="font-size: 13px;">
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th class="text-right font-weight-bold">Total:</th>
+                             <th id="report-prod-footer-qty" style="font-size: 14px; font-weight: bold;">0</th>
+                             <th></th>
+                             <th id="report-prod-footer-cost" class="text-success" style="font-size: 14px; font-weight: bold;">₹0.00</th>
+                             <th></th>
+                         </tr>
+                     </tfoot>
+                 </table>
+                </div>
+            </div>
+        </div>
+        <!-- Page end  -->
+    </div>
+</div>
+
+<style>
+    .tbl-server-info th, .tbl-server-info td {
+        padding: 8px 10px !important;
+        font-size: 13px !important;
+    }
+    .tbl-server-info th {
+        font-weight: 700 !important;
+        font-size: 12px !important;
+    }
+</style>

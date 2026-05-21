@@ -1,0 +1,40 @@
+/*
+Theme Name: Inventory Management
+Theme URI: https://factory.alokasports.com
+Author: Antigravity AI
+Description: A premium, ultra-responsive POS and Inventory Management theme converted directly from POS Dash.
+Version: 1.0.0
+License: GNU General Public License v2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Text Domain: inventory-management
+Tags: dashboard, responsive-layout, custom-menu, translation-ready
+*/
+
+/* Custom overrides for WordPress integration */
+#wpadminbar {
+    z-index: 99999 !important;
+}
+
+/* Adjust top padding if admin bar is showing */
+body.admin-bar .iq-top-navbar {
+    top: 32px !important;
+}
+
+@media screen and (max-width: 782px) {
+    body.admin-bar .iq-top-navbar {
+        top: 46px !important;
+    }
+}
+
+/* Compact Table Layout styles for all list tables */
+.tbl-server-info th, .tbl-server-info td,
+#daily_log_table th, #daily_log_table td {
+    padding: 8px 10px !important;
+    font-size: 13px !important;
+}
+.tbl-server-info th,
+#daily_log_table th {
+    font-weight: 700 !important;
+    font-size: 12px !important;
+}
+

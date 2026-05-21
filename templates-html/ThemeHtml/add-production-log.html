@@ -1,0 +1,387 @@
+<div class="content-page">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header d-flex justify-content-between bg-white border-bottom-0 pt-4 pb-0">
+                        <div class="header-title">
+                            <h4 class="card-title text-primary font-weight-bold">Daily Production Log</h4>
+                            <p class="text-muted">Log the units produced by employees today. System will calculate and save historical unit labor cost payouts.</p>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Step 1: Employee Selection -->
+                        <div id="step-1-employee" class="mb-4 bg-light p-4 rounded">
+                            <h5 class="mb-3"><i class="ri-user-search-line mr-2"></i>Step 1: Select Employee</h5>
+                            <div class="form-group position-relative mb-0">
+                                <label class="font-weight-bold">Search Employee (ID or Name)</label>
+                                <input type="text" id="employee_search" class="form-control form-control-lg border-primary" placeholder="Type name or ID to search..." autocomplete="off">
+                                <ul id="employee_results" class="list-group position-absolute w-100 shadow-sm" style="z-index: 1000; display: none;"></ul>
+                            </div>
+                            <!-- Selected Employee Card -->
+                            <div id="selected_employee_card" class="card border border-primary mt-3 mb-0" style="display:none; background-color: #f8fbff;">
+                                <div class="card-body d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <img id="sel_emp_img" src="" class="avatar-60 rounded mr-3 border" alt="Employee">
+                                        <div>
+                                            <h5 id="sel_emp_name" class="mb-1 font-weight-bold text-dark"></h5>
+                                            <span class="badge badge-primary" id="sel_emp_id"></span>
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-danger" id="clear_employee_btn"><i class="ri-close-line"></i> Change Employee</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Date Selection (Hidden until Employee selected) -->
+                        <div id="step-2-date" style="display:none;" class="mb-4 bg-light p-4 rounded animate-fade-in">
+                            <h5 class="mb-3"><i class="ri-calendar-event-line mr-2"></i>Step 2: Select Produce Date</h5>
+                            <div class="form-group mb-0 col-md-4 pl-0">
+                                <label class="font-weight-bold">Date of Production</label>
+                                <input type="date" id="produce_date" class="form-control form-control-lg border-primary">
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Product Logging (Hidden until Employee selected) -->
+                        <div id="step-3-logging" style="display:none;" class="animate-fade-in">
+                            <hr class="my-4">
+                            <h5 class="mb-3"><i class="ri-shopping-cart-2-line mr-2"></i>Step 3: Log Products</h5>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Category Filter</label>
+                                        <select id="product_category" class="form-control">
+                                            <option value="">All Categories</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="form-group position-relative">
+                                        <label class="font-weight-bold">Search Product (ID or Name)</label>
+                                        <input type="text" id="product_search" class="form-control border-success" placeholder="Type to search product..." autocomplete="off">
+                                        <ul id="product_results" class="list-group position-absolute w-100 shadow-sm" style="z-index: 1000; display: none;"></ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Live Daily Log Table -->
+                            <div class="mt-5">
+                                <h5 class="mb-3"><i class="ri-list-check-2 mr-2"></i>Production Log for Selected Employee & Date</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover" id="daily_log_table">
+                                        <thead class="bg-primary text-white">
+                                            <tr>
+                                                <th>Product ID</th>
+                                                <th>Product Name</th>
+                                                <th>Category</th>
+                                                <th>Produce Date</th>
+                                                <th>Quantity Produced</th>
+                                                <th>Unit Labor Cost</th>
+                                                <th>Total Labor Payout</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Data injected here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quantity Modal -->
+<div class="modal fade" id="quantityModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title text-white"><i class="ri-add-box-line mr-2"></i>Log Production Quantity</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4">
+                <h5 id="modal_product_name" class="text-dark font-weight-bold mb-1"></h5>
+                <p class="text-muted mb-4 badge badge-light border">Product ID: <span id="modal_product_id"></span> | Base Labor Rate: ₹<span id="modal_product_cost"></span></p>
+                
+                <div class="form-group">
+                    <label class="font-weight-bold text-dark h6">Enter Quantity Produced</label>
+                    <input type="number" id="modal_quantity" class="form-control form-control-lg text-center" min="1" value="1" style="font-size: 24px; font-weight: bold;">
+                    <div class="invalid-feedback">Please enter a valid quantity greater than 0.</div>
+                </div>
+                
+                <div class="alert alert-success mt-4 mb-0 d-flex justify-content-between align-items-center">
+                    <strong>Calculated Total Payout:</strong> 
+                    <span class="h4 mb-0 text-success font-weight-bold">₹<span id="modal_total_payout">0.00</span></span>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary px-4" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary px-4 font-weight-bold" id="save_log_btn"><i class="ri-save-3-line mr-1"></i> Save & Log</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // AJAX URL for WordPress environment using reliable global variable
+    const ajaxurl = window.posdashAjaxUrl;
+    let currentEmployeeId = null;
+    let selectedProduct = null;
+
+    // --- Load Categories Dynamically ---
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('produce_date').value = today;
+
+        fetch(`${ajaxurl}?action=get_all_categories`)
+            .then(r => r.json())
+            .then(res => {
+                if(res.success) {
+                    const catSelect = document.getElementById('product_category');
+                    res.data.forEach(cat => {
+                        const opt = document.createElement('option');
+                        opt.value = cat.name;
+                        opt.textContent = cat.name;
+                        catSelect.appendChild(opt);
+                    });
+                }
+            });
+    });
+
+    document.getElementById('produce_date').addEventListener('change', function() {
+        loadDailyLogs();
+    });
+
+    // --- Employee Search ---
+    const empInput = document.getElementById('employee_search');
+    const empResults = document.getElementById('employee_results');
+    
+    empInput.addEventListener('input', function() {
+        const term = this.value;
+        if(term.length < 2) {
+            empResults.style.display = 'none';
+            return;
+        }
+        fetch(`${ajaxurl}?action=search_employees&term=${encodeURIComponent(term)}`)
+            .then(r => r.json())
+            .then(res => {
+                if(res.success) {
+                    empResults.innerHTML = '';
+                    res.data.forEach(emp => {
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item list-group-item-action cursor-pointer d-flex align-items-center';
+                        li.innerHTML = `<img src="${emp.image}" class="avatar-40 rounded mr-3 border"> <span class="font-weight-bold">${emp.name}</span> <small class="ml-auto text-muted">ID: ${emp.id}</small>`;
+                        li.onclick = () => selectEmployee(emp);
+                        empResults.appendChild(li);
+                    });
+                    empResults.style.display = 'block';
+                }
+            });
+    });
+
+    function selectEmployee(emp) {
+        currentEmployeeId = emp.id;
+        empResults.style.display = 'none';
+        empInput.value = '';
+        empInput.parentElement.style.display = 'none';
+        
+        document.getElementById('sel_emp_name').innerText = emp.name;
+        document.getElementById('sel_emp_id').innerText = `ID: ${emp.id}`;
+        document.getElementById('sel_emp_img').src = emp.image;
+        document.getElementById('selected_employee_card').style.display = 'block';
+        
+        document.getElementById('step-2-date').style.display = 'block';
+        document.getElementById('step-3-logging').style.display = 'block';
+        loadDailyLogs();
+    }
+
+    document.getElementById('clear_employee_btn').addEventListener('click', function() {
+        currentEmployeeId = null;
+        document.getElementById('selected_employee_card').style.display = 'none';
+        empInput.parentElement.style.display = 'block';
+        document.getElementById('step-2-date').style.display = 'none';
+        document.getElementById('step-3-logging').style.display = 'none';
+        document.querySelector('#daily_log_table tbody').innerHTML = '';
+    });
+
+    // --- Product Search ---
+    const prodInput = document.getElementById('product_search');
+    const prodResults = document.getElementById('product_results');
+    const catFilter = document.getElementById('product_category');
+
+    function fetchProducts(term = '', cat = '') {
+        fetch(`${ajaxurl}?action=search_products&term=${encodeURIComponent(term)}&category=${encodeURIComponent(cat)}`)
+            .then(r => r.json())
+            .then(res => {
+                if(res.success) {
+                    prodResults.innerHTML = '';
+                    if (res.data.length === 0) {
+                        prodResults.innerHTML = '<li class="list-group-item text-muted">No products found.</li>';
+                        prodResults.style.display = 'block';
+                        return;
+                    }
+                    res.data.forEach(prod => {
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item list-group-item-action cursor-pointer d-flex justify-content-between align-items-center';
+                        li.innerHTML = `<div><strong class="text-primary">${prod.name}</strong> <small class="text-muted ml-2">(ID: ${prod.id})</small><br><small class="text-secondary">${prod.category}</small></div> <div><span class="badge badge-success">Rate: ₹${prod.cost}</span></div>`;
+                        li.onclick = () => openQuantityModal(prod);
+                        prodResults.appendChild(li);
+                    });
+                    prodResults.style.display = 'block';
+                }
+            });
+    }
+
+    // Fetch and show products immediately when a category is selected
+    catFilter.addEventListener('change', function() {
+        const cat = this.value;
+        const term = prodInput.value;
+        if(cat || term.length > 0) {
+            fetchProducts(term, cat);
+        } else {
+            prodResults.style.display = 'none';
+        }
+    });
+
+    // Fetch and filter when typing
+    prodInput.addEventListener('input', function() {
+        const term = this.value;
+        const cat = catFilter.value;
+        if(term.length === 0 && !cat) {
+            prodResults.style.display = 'none';
+            return;
+        }
+        fetchProducts(term, cat);
+    });
+
+    // Show dropdown if input is clicked and we have a category or term
+    prodInput.addEventListener('focus', function() {
+        const term = this.value;
+        const cat = catFilter.value;
+        if(term.length > 0 || cat) {
+            fetchProducts(term, cat);
+        }
+    });
+
+    // Hide dropdown when clicking completely outside
+    document.addEventListener('click', function(e) {
+        if (!prodInput.contains(e.target) && !prodResults.contains(e.target) && !catFilter.contains(e.target)) {
+            prodResults.style.display = 'none';
+        }
+    });
+
+    // --- Modal Logic ---
+    function openQuantityModal(prod) {
+        selectedProduct = prod;
+        prodResults.style.display = 'none';
+        prodInput.value = '';
+        
+        document.getElementById('modal_product_name').innerText = prod.name;
+        document.getElementById('modal_product_id').innerText = prod.id;
+        document.getElementById('modal_product_cost').innerText = parseFloat(prod.cost).toFixed(2);
+        document.getElementById('modal_quantity').value = 1;
+        document.getElementById('modal_quantity').classList.remove('is-invalid');
+        updatePayoutCalc();
+        
+        $('#quantityModal').modal('show');
+    }
+
+    document.getElementById('modal_quantity').addEventListener('input', updatePayoutCalc);
+    document.getElementById('modal_quantity').addEventListener('change', updatePayoutCalc);
+
+    function updatePayoutCalc() {
+        const qty = parseInt(document.getElementById('modal_quantity').value) || 0;
+        const cost = parseFloat(selectedProduct.cost) || 0;
+        const total = qty * cost;
+        document.getElementById('modal_total_payout').innerText = total.toFixed(2);
+    }
+
+    document.getElementById('save_log_btn').addEventListener('click', function() {
+        const qty = parseInt(document.getElementById('modal_quantity').value);
+        if(!qty || qty <= 0) {
+            document.getElementById('modal_quantity').classList.add('is-invalid');
+            return;
+        }
+        
+        const btn = this;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+        btn.disabled = true;
+
+        const formData = new URLSearchParams();
+        formData.append('action', 'save_production_log');
+        formData.append('employee_id', currentEmployeeId);
+        formData.append('product_id', selectedProduct.id);
+        formData.append('quantity', qty);
+        formData.append('produce_date', document.getElementById('produce_date').value);
+
+        fetch(ajaxurl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: formData.toString()
+        })
+        .then(r => r.json())
+        .then(res => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            
+            if(res.success) {
+                $('#quantityModal').modal('hide');
+                loadDailyLogs(); // Refresh live list
+            } else {
+                alert('Error saving log: ' + res.data);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
+    });
+
+    // --- Load Daily Logs ---
+    function loadDailyLogs() {
+        if(!currentEmployeeId) return;
+        const selectedDate = document.getElementById('produce_date').value;
+        
+        fetch(`${ajaxurl}?action=get_daily_logs&employee_id=${currentEmployeeId}&produce_date=${encodeURIComponent(selectedDate)}`)
+            .then(r => r.json())
+            .then(res => {
+                if(res.success) {
+                    const tbody = document.querySelector('#daily_log_table tbody');
+                    tbody.innerHTML = '';
+                    if(res.data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No production records found for this employee on this date.</td></tr>';
+                        return;
+                    }
+                    res.data.forEach(log => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><span class="text-muted font-weight-bold">#${log.product_id}</span></td>
+                            <td class="font-weight-bold text-dark">${log.product_name}</td>
+                            <td>${log.category}</td>
+                            <td>${log.produce_date}</td>
+                            <td class="text-center"><span class="badge badge-success px-3 py-2" style="font-size: 14px;">${log.quantity_produced} Units</span></td>
+                            <td>₹${parseFloat(log.unit_labor_cost_snapshot).toFixed(2)}</td>
+                            <td class="text-success font-weight-bold h6 mb-0">₹${parseFloat(log.total_labor_payout).toFixed(2)}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            });
+    }
+</script>
+<style>
+    .cursor-pointer { cursor: pointer; }
+    .list-group-item:hover { background-color: #f8fbff; border-left: 3px solid #007bff; }
+    .animate-fade-in { animation: fadeIn 0.4s ease-in; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
