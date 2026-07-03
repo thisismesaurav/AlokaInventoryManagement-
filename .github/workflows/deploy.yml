@@ -1,0 +1,35 @@
+name: Deploy Theme to WordPress Server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy Theme via SFTP
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚚 Get latest code
+        uses: actions/checkout@v4
+
+      - name: 🚀 Sync files to Server
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: ${{ secrets.FTP_PORT || 22 }} # Default to 22 for SFTP
+          protocol: sftp # Use 'sftp' (secured) or 'ftp'
+          local-dir: ./
+          server-dir: ${{ secrets.FTP_REMOTE_PATH }} # Path to your theme, e.g., /public_html/wp-content/themes/inventory-management/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            .github/**
+            node_modules/**
+            package.json
+            package-lock.json
+            README.md
+            contributing.txt
+            unused-files-backup/**
