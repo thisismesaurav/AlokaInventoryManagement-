@@ -598,7 +598,7 @@ if ( strpos( $view, 'list-product' ) !== false ) {
     $content = preg_replace_callback( '/<tbody class="ligth-body">.*?<\/tbody>/s', function() use ($tbody) { return $tbody; }, $content );
     $content .= '<script>window.productList = ' . wp_json_encode( $products ) . '; window.currentIsAdmin = ' . ( current_user_can( 'administrator' ) ? 'true' : 'false' ) . ';</script>';
 
-    // Fetch Categories for modal dropdown
+    // Fetch Categories for modal dropdown and filters
     $categories = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}prod_category ORDER BY name ASC" );
     $cat_options = '';
     if ( ! empty( $categories ) ) {
@@ -607,16 +607,20 @@ if ( strpos( $view, 'list-product' ) !== false ) {
         }
     }
     $content = str_replace( '<!-- EDIT_CATEGORY_OPTIONS -->', $cat_options, $content );
+    $content = str_replace( '<!-- DYNAMIC_CATEGORY_OPTIONS -->', $cat_options, $content );
 
-    // Fetch Product Types for modal dropdown
+    // Fetch Product Types for modal dropdown and filters
     $types = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}product_type ORDER BY Type ASC" );
     $type_options = '';
+    $filter_type_options = '';
     if ( ! empty( $types ) ) {
         foreach ( $types as $t ) {
             $type_options .= '<option value="' . esc_attr( $t->id ) . '">' . esc_html( $t->Type ) . '</option>';
+            $filter_type_options .= '<option value="' . esc_attr( $t->Type ) . '">' . esc_html( $t->Type ) . '</option>';
         }
     }
     $content = str_replace( '<!-- EDIT_TYPE_OPTIONS -->', $type_options, $content );
+    $content = str_replace( '<!-- DYNAMIC_TYPE_OPTIONS -->', $filter_type_options, $content );
 }
 
 // Render Dynamic Real-Time Employees from wp_employee
