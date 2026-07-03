@@ -816,10 +816,12 @@ if ( strpos( $view, 'list-production-log' ) !== false ) {
     $logs = $wpdb->get_results( "
         SELECT l.id, l.employee_id, e.name as employee_name, e.image as employee_image,
                l.product_id, p.product_name, p.category, l.quantity_produced,
-               l.unit_labor_cost_snapshot, l.total_labor_payout, l.Created_dt, l.produce_date, l.created_by
+               l.unit_labor_cost_snapshot, l.total_labor_payout, l.Created_dt, l.produce_date, l.created_by,
+               u.display_name as logged_by_name
         FROM $log_table l
         LEFT JOIN $emp_table e ON l.employee_id = e.id
         LEFT JOIN $prod_table p ON l.product_id = p.id
+        LEFT JOIN {$wpdb->prefix}users u ON l.created_by = u.ID
         ORDER BY l.produce_date DESC, l.id DESC
     " );
 
@@ -841,7 +843,8 @@ if ( strpos( $view, 'list-production-log' ) !== false ) {
             $tbody .= '<td>₹' . esc_html( $unit_cost ) . '</td>';
             $tbody .= '<td><strong class="text-success">₹' . esc_html( $total_payout ) . '</strong></td>';
             $tbody .= '<td>' . esc_html( $log->employee_name ) . '</td>';
-            $tbody .= '<td>' . esc_html( $log->created_by ) . '</td>';
+            $logged_by = ! empty( $log->logged_by_name ) ? $log->logged_by_name : ( ! empty( $log->created_by ) ? $log->created_by : 'System' );
+            $tbody .= '<td>' . esc_html( $logged_by ) . '</td>';
             $tbody .= '<td>' . esc_html( date( 'M d, Y h:i A', strtotime( $log->Created_dt ) ) ) . '</td>';
             $tbody .= '</tr>';
         }
