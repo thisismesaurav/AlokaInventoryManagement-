@@ -33,39 +33,35 @@
                         <div class="d-flex align-items-center auth-content">
                            <div class="col-lg-7 align-self-center">
                               <div class="p-3">
-                                 <h2 class="mb-2">Sign In</h2>
-                                 <p>Login to stay connected.</p>
+                                 <h2 class="mb-2" style="font-weight: 700; color: #1e293b;">Sign In</h2>
+                                 <p class="text-muted mb-4" style="font-size: 14px;">Login to stay connected.</p>
                                   <form method="POST" action="">
                                      <div class="row">
                                         <div class="col-lg-12">
-                                           <div class="floating-label form-group">
-                                              <input class="floating-input form-control" type="text" name="username" placeholder=" " required autocomplete="username">
-                                              <label>Email or Username</label>
+                                           <div class="form-group mb-3">
+                                              <label class="mb-2" style="font-size: 13px; font-weight: 600; color: #475569; display: block;">Email or Username</label>
+                                              <input class="form-control" type="text" name="username" required autocomplete="username" placeholder="Enter your email or username" style="height: 45px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 10px 14px; font-size: 14px; color: #334155; width: 100%; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); outline: none;">
                                            </div>
                                         </div>
                                         <div class="col-lg-12">
-                                           <div class="floating-label form-group password-toggle-wrapper">
-                                              <input class="floating-input form-control" type="password" name="password" id="signin_password" placeholder=" " required autocomplete="current-password">
-                                              <label>Password</label>
-                                              <button type="button" class="password-toggle-btn" id="toggle_signin_password" title="Show/hide password" tabindex="-1">
-                                                 <i class="ri-eye-off-line" id="toggle_signin_icon"></i>
-                                              </button>
+                                           <div class="form-group mb-4">
+                                              <label class="mb-2" style="font-size: 13px; font-weight: 600; color: #475569; display: block;">Password</label>
+                                              <div style="position: relative; width: 100%;">
+                                                 <input class="form-control" type="password" name="password" id="signin_password" required autocomplete="current-password" placeholder="Enter your password" style="height: 45px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 10px 42px 10px 14px; font-size: 14px; color: #334155; width: 100%; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); outline: none;">
+                                                 <button type="button" id="toggle_signin_password" title="Show/hide password" tabindex="-1" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #64748b; font-size: 18px; display: flex; align-items: center; justify-content: center; outline: none; padding: 0; margin: 0; line-height: 1;">
+                                                    <i class="ri-eye-off-line" id="toggle_signin_icon"></i>
+                                                 </button>
+                                              </div>
                                            </div>
                                         </div>
-                                        <div class="col-lg-6">
-                                           <div class="custom-control custom-checkbox mb-3">
+                                        <div class="col-lg-12 mb-4">
+                                           <div class="custom-control custom-checkbox d-flex align-items-center">
                                               <input type="checkbox" class="custom-control-input" id="customCheck1" name="remember" value="1">
-                                              <label class="custom-control-label control-label-1" for="customCheck1">Remember Me</label>
+                                              <label class="custom-control-label control-label-1" for="customCheck1" style="font-size: 14px; color: #64748b; cursor: pointer; user-select: none;">Remember Me</label>
                                            </div>
-                                        </div>
-                                        <div class="col-lg-6">
-                                           <a href="auth-recoverpw.html" class="text-primary float-right">Forgot Password?</a>
                                         </div>
                                      </div>
-                                     <button type="submit" class="btn btn-primary">Sign In</button>
-                                     <p class="mt-3">
-                                        Create an Account <a href="auth-sign-up.html" class="text-primary">Sign Up</a>
-                                     </p>
+                                     <button type="submit" class="btn btn-primary" style="height: 45px; border-radius: 8px; font-size: 14px; font-weight: 600; width: 100%; background: #32BDEA; border: none; color: #fff; box-shadow: 0 4px 6px -1px rgba(50, 189, 234, 0.2), 0 2px 4px -1px rgba(50, 189, 234, 0.1); cursor: pointer; transition: all 0.2s ease-in-out;">Sign In</button>
                                   </form>
                                   <script>
                                      document.getElementById('toggle_signin_password').addEventListener('click', function() {
