@@ -16,6 +16,7 @@
                      <thead class="bg-white text-uppercase">
                         <tr class="ligth ligth-data">
                             <th>Product Number</th>
+                            <th>Product Type</th>
                             <th>Category</th>
                             <th>Product</th>
                             <th>Cost</th>
@@ -107,6 +108,10 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             window.openEditProductModal = function(productId) {
+                if (!window.currentIsAdmin) {
+                    alert('This action is only allowed for administrator.');
+                    return;
+                }
                 var prod = null;
                 if (window.productList) {
                     for (var i = 0; i < window.productList.length; i++) {

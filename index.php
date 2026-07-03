@@ -563,6 +563,7 @@ if ( strpos( $view, 'list-product' ) !== false ) {
 
             $tbody .= '<tr>';
             $tbody .= '<td class="text-muted" style="font-size:12px;">#' . esc_html( $product->id ) . '</td>';
+            $tbody .= '<td>' . esc_html( $product->product_type ) . '</td>';
             $tbody .= '<td>' . esc_html( $product->category ) . '</td>';
             $tbody .= '<td>' . esc_html( $product->product_name ) . '</td>';
             $tbody .= '<td>₹' . esc_html( $cost ) . '</td>';
@@ -578,19 +579,19 @@ if ( strpos( $view, 'list-product' ) !== false ) {
                 home_url( '/?action=delete_product&id=' . $product->id ),
                 'posdash_delete_delete_product_' . $product->id
             );
-            $tbody .= '<a class="badge bg-warning mr-2" data-toggle="tooltip" data-placement="top" title="Delete" href="' . esc_url( $delete_url ) . '" onclick="return confirm(\'Are you sure you want to delete this product?\');"><i class="ri-delete-bin-line mr-0"></i></a>';
+            $tbody .= '<a class="badge bg-warning mr-2" data-toggle="tooltip" data-placement="top" title="Delete" href="' . esc_url( $delete_url ) . '" onclick="if(!window.currentIsAdmin){ alert(\'This action is only allowed for administrator.\'); return false; } return confirm(\'Are you sure you want to delete this product?\');"><i class="ri-delete-bin-line mr-0"></i></a>';
             
             $tbody .= '</div>';
             $tbody .= '</td>';
             $tbody .= '</tr>';
         }
     } else {
-        $tbody .= '<tr><td colspan="6" class="text-center">No products found.</td></tr>';
+        $tbody .= '<tr><td colspan="7" class="text-center">No products found.</td></tr>';
     }
     $tbody .= '</tbody>';
 
     $content = preg_replace_callback( '/<tbody class="ligth-body">.*?<\/tbody>/s', function() use ($tbody) { return $tbody; }, $content );
-    $content .= '<script>window.productList = ' . wp_json_encode( $products ) . ';</script>';
+    $content .= '<script>window.productList = ' . wp_json_encode( $products ) . '; window.currentIsAdmin = ' . ( current_user_can( 'administrator' ) ? 'true' : 'false' ) . ';</script>';
 
     // Fetch Categories for modal dropdown
     $categories = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}prod_category ORDER BY name ASC" );

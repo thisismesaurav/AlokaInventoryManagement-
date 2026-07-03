@@ -304,6 +304,9 @@ function inventory_management_handle_submissions() {
         }
 
         if ( 'delete_product' === $action && $id > 0 ) {
+            if ( ! current_user_can( 'administrator' ) ) {
+                wp_die( esc_html__( 'This action is only allowed for administrator.', 'inventory-management' ) );
+            }
             $wpdb->delete( $wpdb->prefix . 'products', array( 'id' => $id ) );
             wp_redirect( home_url( '/list-product' ) );
             exit;
@@ -409,6 +412,9 @@ function inventory_management_handle_submissions() {
     }
 
     if ( 'edit_product' === $action_type ) {
+        if ( ! current_user_can( 'administrator' ) ) {
+            wp_die( esc_html__( 'This action is only allowed for administrator.', 'inventory-management' ) );
+        }
         $product_id = isset( $_POST['product_id'] ) ? intval( $_POST['product_id'] ) : 0;
         if ( $product_id > 0 ) {
             $existing_product = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}products WHERE id = %d", $product_id ) );
