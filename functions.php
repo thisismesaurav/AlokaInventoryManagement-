@@ -949,15 +949,11 @@ add_action( 'wp_footer', function() {
         ?>
         <script type="text/javascript">
         jQuery(document).ready(function($) {
-            // Global state to track current month filter
             var filterCurrentMonthOnly = true;
 
             var table = $('.custom-data-table').DataTable({
                 "pageLength": 10,
-                "order": [[2, 'desc']], // Sort by Produce Date descending by default
-                "columnDefs": [
-                    { "orderable": false, "targets": 0 }
-                ],
+                "order": [[1, 'desc']], // Sort by Produce Date descending by default (index 1 after removing checkbox)
                 "footerCallback": function (row, data, start, end, display) {
                     var api = this.api();
 
@@ -970,25 +966,25 @@ add_action( 'wp_footer', function() {
                         return typeof i === 'number' ? i : 0;
                     };
 
-                    // Total over all filtered/displayed pages for Quantity (column index 5)
+                    // Total over all filtered/displayed pages for Quantity (column index 4 after removing checkbox)
                     var pageTotalQty = api
-                        .column(5, { search: 'applied' })
+                        .column(4, { search: 'applied' })
                         .data()
                         .reduce(function (a, b) {
                             return intVal(a) + intVal(b);
                         }, 0);
 
-                    // Total over all filtered/displayed pages for Total Cost (column index 7)
+                    // Total over all filtered/displayed pages for Total Cost (column index 6 after removing checkbox)
                     var pageTotalCost = api
-                        .column(7, { search: 'applied' })
+                        .column(6, { search: 'applied' })
                         .data()
                         .reduce(function (a, b) {
                             return intVal(a) + intVal(b);
                         }, 0);
 
                     // Update footer cells
-                    $(api.column(5).footer()).html(pageTotalQty);
-                    $(api.column(7).footer()).html('₹' + pageTotalCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                    $(api.column(4).footer()).html(pageTotalQty);
+                    $(api.column(6).footer()).html('₹' + pageTotalCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
                 }
             });
 
@@ -1003,8 +999,8 @@ add_action( 'wp_footer', function() {
                         return true; // Show all rows
                     }
 
-                    // Column index 2 is Produce Date (e.g. "May 19, 2026")
-                    var cellDateStrRaw = data[2];
+                    // Column index 1 is Produce Date (e.g. "May 19, 2026")
+                    var cellDateStrRaw = data[1];
                     if (!cellDateStrRaw) return false;
 
                     var cellDateObj = new Date(cellDateStrRaw);

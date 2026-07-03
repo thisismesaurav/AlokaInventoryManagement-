@@ -833,7 +833,6 @@ if ( strpos( $view, 'list-production-log' ) !== false ) {
             $produce_date = ! empty( $log->produce_date ) ? date( 'M d, Y', strtotime( $log->produce_date ) ) : 'N/A';
             
             $tbody .= '<tr>';
-            $tbody .= '<td><div class="checkbox d-inline-block"><input type="checkbox" class="checkbox-input" id="' . esc_attr( $cb_id ) . '"><label for="' . esc_attr( $cb_id ) . '" class="mb-0"></label></div></td>';
             $tbody .= '<td class="text-muted" style="font-size:12px;">#' . esc_html( $log->id ) . '</td>';
             $tbody .= '<td>' . esc_html( $produce_date ) . '</td>';
             $tbody .= '<td>' . esc_html( $log->category ) . '</td>';
@@ -847,7 +846,7 @@ if ( strpos( $view, 'list-production-log' ) !== false ) {
             $tbody .= '</tr>';
         }
     } else {
-        $tbody .= '<tr><td colspan="11" class="text-center">No production records found.</td></tr>';
+        $tbody .= '<tr><td colspan="10" class="text-center">No production records found.</td></tr>';
     }
     $tbody .= '</tbody>';
     $content = preg_replace_callback( '/<tbody class="ligth-body">.*?<\/tbody>/s', function() use ($tbody) { return $tbody; }, $content );
