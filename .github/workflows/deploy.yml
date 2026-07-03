@@ -1,10 +1,9 @@
-Name: Deploy Theme to WordPress_factory
-# Version: 1.0.2 — reliable theme path, no overlapping deploys, clearer logs
+name: Deploy Theme to WordPress_factory
 
 on:
   push:
     branches:
-      - master # Change to 'main' if that is your default branch
+      - main # Your default branch is 'main'
   workflow_dispatch:
 
 # Overlapping FTP runs can corrupt the sync state and leave a half-uploaded theme.
