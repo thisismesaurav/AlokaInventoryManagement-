@@ -559,29 +559,58 @@ if ( strpos( $view, 'list-product' ) !== false ) {
     $tbody = '<tbody class="ligth-body">';
     if ( ! empty( $products ) ) {
         foreach ( $products as $index => $product ) {
-            $cb_id = 'checkbox' . ( $index + 2 );
             $cost = number_format( (float) $product->cost, 2 );
 
             $tbody .= '<tr>';
-            $tbody .= '<td>' . esc_html( $product->product_name ) . '</td>';
-            $tbody .= '<td>' . esc_html( $product->product_code ) . '</td>';
+            $tbody .= '<td class="text-muted" style="font-size:12px;">#' . esc_html( $product->id ) . '</td>';
             $tbody .= '<td>' . esc_html( $product->category ) . '</td>';
-            $tbody .= '<td>$' . esc_html( $cost ) . '</td>';
+            $tbody .= '<td>' . esc_html( $product->product_name ) . '</td>';
+            $tbody .= '<td>₹' . esc_html( $cost ) . '</td>';
+            $tbody .= '<td>' . esc_html( $product->product_code ) . '</td>';
             $tbody .= '<td>';
             $tbody .= '<div class="d-flex align-items-center list-action">';
-            $tbody .= '<a class="badge badge-info mr-2" data-toggle="tooltip" data-placement="top" title="View" href="#"><i class="ri-eye-line mr-0"></i></a>';
-            $tbody .= '<a class="badge bg-success mr-2" data-toggle="tooltip" data-placement="top" title="Edit" href="#"><i class="ri-pencil-line mr-0"></i></a>';
-            $tbody .= '<a class="badge bg-warning mr-2" data-toggle="tooltip" data-placement="top" title="Delete" href="' . esc_url( home_url( '/?action=delete_product&id=' . $product->id ) ) . '" onclick="return confirm(\'Are you sure you want to delete this product?\');"><i class="ri-delete-bin-line mr-0"></i></a>';
+            
+            // Edit Row Button
+            $tbody .= '<a class="badge bg-success mr-2" data-toggle="tooltip" data-placement="top" title="Edit" href="#" onclick="window.openEditProductModal(' . intval( $product->id ) . '); return false;"><i class="ri-pencil-line mr-0"></i></a>';
+            
+            // Delete Row Button (Secure with Nonce)
+            $delete_url = wp_nonce_url(
+                home_url( '/?action=delete_product&id=' . $product->id ),
+                'posdash_delete_delete_product_' . $product->id
+            );
+            $tbody .= '<a class="badge bg-warning mr-2" data-toggle="tooltip" data-placement="top" title="Delete" href="' . esc_url( $delete_url ) . '" onclick="return confirm(\'Are you sure you want to delete this product?\');"><i class="ri-delete-bin-line mr-0"></i></a>';
+            
             $tbody .= '</div>';
             $tbody .= '</td>';
             $tbody .= '</tr>';
         }
     } else {
-        $tbody .= '<tr><td colspan="5" class="text-center">No products found.</td></tr>';
+        $tbody .= '<tr><td colspan="6" class="text-center">No products found.</td></tr>';
     }
     $tbody .= '</tbody>';
 
     $content = preg_replace_callback( '/<tbody class="ligth-body">.*?<\/tbody>/s', function() use ($tbody) { return $tbody; }, $content );
+    $content .= '<script>window.productList = ' . wp_json_encode( $products ) . ';</script>';
+
+    // Fetch Categories for modal dropdown
+    $categories = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}prod_category ORDER BY name ASC" );
+    $cat_options = '';
+    if ( ! empty( $categories ) ) {
+        foreach ( $categories as $cat ) {
+            $cat_options .= '<option value="' . esc_attr( $cat->name ) . '">' . esc_html( $cat->name ) . '</option>';
+        }
+    }
+    $content = str_replace( '<!-- EDIT_CATEGORY_OPTIONS -->', $cat_options, $content );
+
+    // Fetch Product Types for modal dropdown
+    $types = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}product_type ORDER BY Type ASC" );
+    $type_options = '';
+    if ( ! empty( $types ) ) {
+        foreach ( $types as $t ) {
+            $type_options .= '<option value="' . esc_attr( $t->Type ) . '">' . esc_html( $t->Type ) . '</option>';
+        }
+    }
+    $content = str_replace( '<!-- EDIT_TYPE_OPTIONS -->', $type_options, $content );
 }
 
 // Render Dynamic Real-Time Employees from wp_employee

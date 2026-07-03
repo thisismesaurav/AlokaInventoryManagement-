@@ -408,6 +408,56 @@ function inventory_management_handle_submissions() {
         exit;
     }
 
+    if ( 'edit_product' === $action_type ) {
+        $product_id = isset( $_POST['product_id'] ) ? intval( $_POST['product_id'] ) : 0;
+        if ( $product_id > 0 ) {
+            $existing_product = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}products WHERE id = %d", $product_id ) );
+            if ( $existing_product ) {
+                $product_type = isset( $_POST['product_type'] ) ? sanitize_text_field( wp_unslash( $_POST['product_type'] ) ) : 'Standard';
+                $product_name = isset( $_POST['product_name'] ) ? sanitize_text_field( wp_unslash( $_POST['product_name'] ) ) : '';
+                $product_code = isset( $_POST['product_code'] ) ? sanitize_text_field( wp_unslash( $_POST['product_code'] ) ) : '';
+                $category = isset( $_POST['category'] ) ? sanitize_text_field( wp_unslash( $_POST['category'] ) ) : '';
+                $cost = isset( $_POST['cost'] ) ? floatval( sanitize_text_field( wp_unslash( $_POST['cost'] ) ) ) : 0.00;
+                $description = isset( $_POST['description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['description'] ) ) : '';
+
+                // Handle File Upload
+                $image_path = $existing_product->image;
+                if ( ! empty( $_FILES['pic']['name'] ) ) {
+                    $file_type = wp_check_filetype( basename( $_FILES['pic']['name'] ) );
+                    if ( strpos( $file_type['type'], 'image/' ) === 0 ) {
+                        require_once ABSPATH . 'wp-admin/includes/image.php';
+                        require_once ABSPATH . 'wp-admin/includes/file.php';
+                        require_once ABSPATH . 'wp-admin/includes/media.php';
+
+                        $attachment_id = media_handle_upload( 'pic', 0 );
+                        if ( ! is_wp_error( $attachment_id ) ) {
+                            $image_path = wp_get_attachment_url( $attachment_id );
+                        }
+                    }
+                }
+
+                $wpdb->update(
+                    $wpdb->prefix . 'products',
+                    array(
+                        'product_type'      => $product_type,
+                        'product_name'      => $product_name,
+                        'product_code'      => $product_code,
+                        'category'          => $category,
+                        'cost'              => $cost,
+                        'image'             => $image_path,
+                        'description'       => $description,
+                        'Last_upd_dt'       => current_time( 'mysql' ),
+                        'Last_updated_by'   => $username,
+                    ),
+                    array( 'id' => $product_id )
+                );
+            }
+        }
+
+        wp_redirect( home_url( '/list-product' ) );
+        exit;
+    }
+
     if ( 'add_employee' === $action_type ) {
         $name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
         $phone = isset( $_POST['phone'] ) ? sanitize_text_field( wp_unslash( $_POST['phone'] ) ) : '';
