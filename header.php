@@ -124,22 +124,12 @@ if ( empty( $brand_logo ) ) {
                           <ul id="category" class="iq-submenu collapse" data-parent="#iq-sidebar-toggle">
                                   <li class="">
                                           <a href="<?php echo esc_url( $home_url . 'list-category' ); ?>">
-                                              <i class="las la-minus"></i><span>List Category</span>
-                                          </a>
-                                  </li>
-                                  <li class="">
-                                          <a href="<?php echo esc_url( $home_url . 'add-category' ); ?>">
-                                              <i class="las la-minus"></i><span>Add Category</span>
+                                              <i class="las la-minus"></i><span>Category</span>
                                           </a>
                                   </li>
                                   <li class="">
                                           <a href="<?php echo esc_url( $home_url . 'list-type' ); ?>">
-                                              <i class="las la-minus"></i><span>List Type</span>
-                                          </a>
-                                  </li>
-                                  <li class="">
-                                          <a href="<?php echo esc_url( $home_url . 'add-type' ); ?>">
-                                              <i class="las la-minus"></i><span>Add Type</span>
+                                              <i class="las la-minus"></i><span>Type of Product</span>
                                           </a>
                                   </li>
                           </ul>

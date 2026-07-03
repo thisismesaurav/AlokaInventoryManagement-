@@ -319,12 +319,18 @@ function inventory_management_handle_submissions() {
         }
 
         if ( 'delete_category' === $action && $id > 0 ) {
+            if ( ! current_user_can( 'administrator' ) ) {
+                wp_die( esc_html__( 'This action is only allowed for administrator.', 'inventory-management' ) );
+            }
             $wpdb->delete( $wpdb->prefix . 'prod_category', array( 'id' => $id ) );
             wp_redirect( home_url( '/list-category' ) );
             exit;
         }
 
         if ( 'delete_type' === $action && $id > 0 ) {
+            if ( ! current_user_can( 'administrator' ) ) {
+                wp_die( esc_html__( 'This action is only allowed for administrator.', 'inventory-management' ) );
+            }
             $wpdb->delete( $wpdb->prefix . 'product_type', array( 'id' => $id ) );
             wp_redirect( home_url( '/list-type' ) );
             exit;
@@ -694,6 +700,48 @@ function inventory_management_handle_submissions() {
         exit;
     }
 
+    if ( 'edit_category' === $action_type ) {
+        if ( ! current_user_can( 'administrator' ) ) {
+            wp_die( esc_html__( 'This action is only allowed for administrator.', 'inventory-management' ) );
+        }
+        $category_id = isset( $_POST['category_id'] ) ? intval( $_POST['category_id'] ) : 0;
+        if ( $category_id > 0 ) {
+            $existing_category = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}prod_category WHERE id = %d", $category_id ) );
+            if ( $existing_category ) {
+                $name = isset( $_POST['category_name'] ) ? sanitize_text_field( wp_unslash( $_POST['category_name'] ) ) : '';
+                $code = isset( $_POST['category_code'] ) ? sanitize_text_field( wp_unslash( $_POST['category_code'] ) ) : '';
+
+                // Handle File Upload
+                $image_path = $existing_category->image;
+                if ( ! empty( $_FILES['pic']['name'] ) ) {
+                    require_once ABSPATH . 'wp-admin/includes/image.php';
+                    require_once ABSPATH . 'wp-admin/includes/file.php';
+                    require_once ABSPATH . 'wp-admin/includes/media.php';
+
+                    $attachment_id = media_handle_upload( 'pic', 0 );
+                    if ( ! is_wp_error( $attachment_id ) ) {
+                        $image_path = wp_get_attachment_url( $attachment_id );
+                    }
+                }
+
+                $wpdb->update(
+                    $wpdb->prefix . 'prod_category',
+                    array(
+                        'name'            => $name,
+                        'code'            => $code,
+                        'image'           => $image_path,
+                        'Last_upd_dt'     => current_time( 'mysql' ),
+                        'Last_updated_by' => $username,
+                    ),
+                    array( 'id' => $category_id )
+                );
+            }
+        }
+
+        wp_redirect( home_url( '/list-category' ) );
+        exit;
+    }
+
     if ( 'add_type' === $action_type ) {
         $type = isset( $_POST['type'] ) ? sanitize_text_field( wp_unslash( $_POST['type'] ) ) : '';
 
@@ -707,6 +755,32 @@ function inventory_management_handle_submissions() {
                 'Last_updated_by' => $username,
             )
         );
+
+        wp_redirect( home_url( '/list-type' ) );
+        exit;
+    }
+
+    if ( 'edit_type' === $action_type ) {
+        if ( ! current_user_can( 'administrator' ) ) {
+            wp_die( esc_html__( 'This action is only allowed for administrator.', 'inventory-management' ) );
+        }
+        $type_id = isset( $_POST['type_id'] ) ? intval( $_POST['type_id'] ) : 0;
+        if ( $type_id > 0 ) {
+            $existing_type = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}product_type WHERE id = %d", $type_id ) );
+            if ( $existing_type ) {
+                $type_name = isset( $_POST['type_name'] ) ? sanitize_text_field( wp_unslash( $_POST['type_name'] ) ) : '';
+
+                $wpdb->update(
+                    $wpdb->prefix . 'product_type',
+                    array(
+                        'Type'            => $type_name,
+                        'Last_upd_dt'     => current_time( 'mysql' ),
+                        'Last_updated_by' => $username,
+                    ),
+                    array( 'id' => $type_id )
+                );
+            }
+        }
 
         wp_redirect( home_url( '/list-type' ) );
         exit;

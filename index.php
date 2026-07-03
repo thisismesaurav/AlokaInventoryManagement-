@@ -650,22 +650,12 @@ $content = preg_replace(
     '<ul id="category" class="iq-submenu collapse" data-parent="#iq-sidebar-toggle">
         <li class="' . ( strpos( $_SERVER['REQUEST_URI'], 'list-category' ) !== false ? 'active' : '' ) . '">
             <a href="' . esc_url( home_url( '/list-category' ) ) . '">
-                <i class="las la-minus"></i><span>List Category</span>
-            </a>
-        </li>
-        <li class="' . ( strpos( $_SERVER['REQUEST_URI'], 'add-category' ) !== false ? 'active' : '' ) . '">
-            <a href="' . esc_url( home_url( '/add-category' ) ) . '">
-                <i class="las la-minus"></i><span>Add Category</span>
+                <i class="las la-minus"></i><span>Category</span>
             </a>
         </li>
         <li class="' . ( strpos( $_SERVER['REQUEST_URI'], 'list-type' ) !== false ? 'active' : '' ) . '">
             <a href="' . esc_url( home_url( '/list-type' ) ) . '">
-                <i class="las la-minus"></i><span>List Type</span>
-            </a>
-        </li>
-        <li class="' . ( strpos( $_SERVER['REQUEST_URI'], 'add-type' ) !== false ? 'active' : '' ) . '">
-            <a href="' . esc_url( home_url( '/add-type' ) ) . '">
-                <i class="las la-minus"></i><span>Add Type</span>
+                <i class="las la-minus"></i><span>Type of Product</span>
             </a>
         </li>
     </ul>',
@@ -683,16 +673,23 @@ if ( strpos( $view, 'list-category' ) !== false ) {
             if ( strpos( $img_url, 'assets/' ) === 0 ) {
                 $img_url = get_template_directory_uri() . '/' . $img_url;
             }
-            $cb_id = 'checkbox' . ( $index + 2 );
             $tbody .= '<tr>';
             $tbody .= '<td><div class="d-flex align-items-center"><img src="' . esc_url( $img_url ) . '" class="img-fluid rounded avatar-50 mr-3" alt="image"><div>' . esc_html( $cat->name ) . '</div></div></td>';
             $tbody .= '<td>' . esc_html( $cat->code ) . '</td>';
             $tbody .= '<td>' . esc_html( $cat->name ) . '</td>';
             $tbody .= '<td>';
             $tbody .= '<div class="d-flex align-items-center list-action">';
-            $tbody .= '<a class="badge badge-info mr-2" data-toggle="tooltip" data-placement="top" title="View" href="#"><i class="ri-eye-line mr-0"></i></a>';
-            $tbody .= '<a class="badge bg-success mr-2" data-toggle="tooltip" data-placement="top" title="Edit" href="#"><i class="ri-pencil-line mr-0"></i></a>';
-            $tbody .= '<a class="badge bg-warning mr-2" data-toggle="tooltip" data-placement="top" title="Delete" href="' . esc_url( home_url( '/?action=delete_category&id=' . $cat->id ) ) . '" onclick="return confirm(\'Are you sure you want to delete this category?\');"><i class="ri-delete-bin-line mr-0"></i></a>';
+            
+            // Edit Button
+            $tbody .= '<a class="badge bg-success mr-2" data-toggle="tooltip" data-placement="top" title="Edit" href="#" onclick="window.openEditCategoryModal(' . intval( $cat->id ) . '); return false;"><i class="ri-pencil-line mr-0"></i></a>';
+            
+            // Delete Button (Secure with Nonce)
+            $delete_url = wp_nonce_url(
+                home_url( '/?action=delete_category&id=' . $cat->id ),
+                'posdash_delete_delete_category_' . $cat->id
+            );
+            $tbody .= '<a class="badge bg-warning mr-2" data-toggle="tooltip" data-placement="top" title="Delete" href="' . esc_url( $delete_url ) . '" onclick="if(!window.currentIsAdmin){ alert(\'This action is only allowed for administrator.\'); return false; } return confirm(\'Are you sure you want to delete this category?\');"><i class="ri-delete-bin-line mr-0"></i></a>';
+            
             $tbody .= '</div>';
             $tbody .= '</td>';
             $tbody .= '</tr>';
@@ -702,6 +699,7 @@ if ( strpos( $view, 'list-category' ) !== false ) {
     }
     $tbody .= '</tbody>';
     $content = preg_replace( '/<tbody class="ligth-body">.*?<\/tbody>/s', $tbody, $content );
+    $content .= '<script>window.categoryList = ' . wp_json_encode( $categories ) . '; window.currentIsAdmin = ' . ( current_user_can( 'administrator' ) ? 'true' : 'false' ) . ';</script>';
 }
 
 // Render Dynamic Real-Time Product Types from wp_product_type
@@ -711,15 +709,22 @@ if ( strpos( $view, 'list-type' ) !== false ) {
     $tbody = '<tbody class="ligth-body">';
     if ( ! empty( $types ) ) {
         foreach ( $types as $index => $t ) {
-            $cb_id = 'checkbox' . ( $index + 2 );
             $tbody .= '<tr>';
             $tbody .= '<td>' . esc_html( $t->id ) . '</td>';
             $tbody .= '<td>' . esc_html( $t->Type ) . '</td>';
             $tbody .= '<td>';
             $tbody .= '<div class="d-flex align-items-center list-action">';
-            $tbody .= '<a class="badge badge-info mr-2" data-toggle="tooltip" data-placement="top" title="View" href="#"><i class="ri-eye-line mr-0"></i></a>';
-            $tbody .= '<a class="badge bg-success mr-2" data-toggle="tooltip" data-placement="top" title="Edit" href="#"><i class="ri-pencil-line mr-0"></i></a>';
-            $tbody .= '<a class="badge bg-warning mr-2" data-toggle="tooltip" data-placement="top" title="Delete" href="' . esc_url( home_url( '/?action=delete_type&id=' . $t->id ) ) . '" onclick="return confirm(\'Are you sure you want to delete this product type?\');"><i class="ri-delete-bin-line mr-0"></i></a>';
+            
+            // Edit Button
+            $tbody .= '<a class="badge bg-success mr-2" data-toggle="tooltip" data-placement="top" title="Edit" href="#" onclick="window.openEditTypeModal(' . intval( $t->id ) . '); return false;"><i class="ri-pencil-line mr-0"></i></a>';
+            
+            // Delete Button (Secure with Nonce)
+            $delete_url = wp_nonce_url(
+                home_url( '/?action=delete_type&id=' . $t->id ),
+                'posdash_delete_delete_type_' . $t->id
+            );
+            $tbody .= '<a class="badge bg-warning mr-2" data-toggle="tooltip" data-placement="top" title="Delete" href="' . esc_url( $delete_url ) . '" onclick="if(!window.currentIsAdmin){ alert(\'This action is only allowed for administrator.\'); return false; } return confirm(\'Are you sure you want to delete this product type?\');"><i class="ri-delete-bin-line mr-0"></i></a>';
+            
             $tbody .= '</div>';
             $tbody .= '</td>';
             $tbody .= '</tr>';
@@ -728,7 +733,8 @@ if ( strpos( $view, 'list-type' ) !== false ) {
         $tbody .= '<tr><td colspan="3" class="text-center">No product types found.</td></tr>';
     }
     $tbody .= '</tbody>';
-    $content = preg_replace_callback( '/<tbody class="ligth-body">.*?<\/tbody>/s', function() use ($tbody) { return $tbody; }, $content );
+    $content = preg_replace( '/<tbody class="ligth-body">.*?<\/tbody>/s', $tbody, $content );
+    $content .= '<script>window.typeList = ' . wp_json_encode( $types ) . '; window.currentIsAdmin = ' . ( current_user_can( 'administrator' ) ? 'true' : 'false' ) . ';</script>';
 }
 
 // Render Dynamic Real-Time Customers from wp_customers
