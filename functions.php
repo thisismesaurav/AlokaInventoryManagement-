@@ -98,7 +98,7 @@ function inventory_management_init_db() {
         $table_products = $wpdb->prefix . 'products';
         $sql_products = "CREATE TABLE $table_products (
             id bigint(20) NOT NULL AUTO_INCREMENT,
-            product_type varchar(100) NOT NULL DEFAULT '',
+            product_type bigint(20) NOT NULL DEFAULT 0,
             product_name varchar(255) NOT NULL DEFAULT '',
             product_code varchar(100) NOT NULL DEFAULT '',
             category varchar(100) NOT NULL DEFAULT '',
@@ -277,9 +277,87 @@ function inventory_management_init_db() {
 
         dbDelta( $sql_raw_material );
 
+        // Run migration to change string values in wp_products.product_type to their corresponding ID from wp_product_type
+        inventory_management_migrate_product_types();
+
+        // Convert the column to bigint(20)
+        $wpdb->query( "ALTER TABLE $table_products MODIFY COLUMN product_type bigint(20) NOT NULL DEFAULT 0" );
+
         update_option( 'inventory_management_db_version', $db_version );
     }
 }
+
+/**
+ * Migrate string product types to referencing IDs
+ */
+function inventory_management_migrate_product_types() {
+    global $wpdb;
+    $table_products = $wpdb->prefix . 'products';
+    $table_type = $wpdb->prefix . 'product_type';
+
+    // Seed default types if empty
+    $count = $wpdb->get_var( "SELECT COUNT(*) FROM $table_type" );
+    if ( intval( $count ) === 0 ) {
+        $default_types = array( 'Raw Material', 'Finished Product', 'Standard', 'Combo', 'Digital', 'Service' );
+        foreach ( $default_types as $dt ) {
+            $wpdb->insert(
+                $table_type,
+                array(
+                    'Type'            => $dt,
+                    'Created_dt'      => current_time( 'mysql' ),
+                    'Last_upd_dt'     => current_time( 'mysql' ),
+                    'created_by'      => 'system',
+                    'Last_updated_by' => 'system',
+                )
+            );
+        }
+    }
+
+    // Get all current products to check and migrate if they are strings
+    $products = $wpdb->get_results( "SELECT id, product_type FROM $table_products" );
+    if ( empty( $products ) ) {
+        return;
+    }
+
+    foreach ( $products as $prod ) {
+        // If product_type is already numeric (excluding 0, which we treat as standard/unmapped), skip
+        if ( is_numeric( $prod->product_type ) && intval( $prod->product_type ) > 0 ) {
+            continue;
+        }
+
+        $type_str = trim( $prod->product_type );
+        if ( empty( $type_str ) ) {
+            continue;
+        }
+
+        // Check if this type already exists in wp_product_type
+        $type_row = $wpdb->get_row( $wpdb->prepare( "SELECT id FROM $table_type WHERE Type = %s", $type_str ) );
+        if ( $type_row ) {
+            $type_id = $type_row->id;
+        } else {
+            // Insert it
+            $wpdb->insert(
+                $table_type,
+                array(
+                    'Type'            => $type_str,
+                    'Created_dt'      => current_time( 'mysql' ),
+                    'Last_upd_dt'     => current_time( 'mysql' ),
+                    'created_by'      => 'system',
+                    'Last_updated_by' => 'system',
+                )
+            );
+            $type_id = $wpdb->insert_id;
+        }
+
+        // Update the product to use this type ID
+        $wpdb->update(
+            $table_products,
+            array( 'product_type' => $type_id ),
+            array( 'id' => $prod->id )
+        );
+    }
+}
+
 add_action( 'after_setup_theme', 'inventory_management_init_db' );
 
 /**
@@ -379,7 +457,7 @@ function inventory_management_handle_submissions() {
     $action_type = sanitize_text_field( wp_unslash( $_POST['action_type'] ) );
 
     if ( 'add_product' === $action_type ) {
-        $product_type = isset( $_POST['product_type'] ) ? sanitize_text_field( wp_unslash( $_POST['product_type'] ) ) : 'Standard';
+        $product_type = isset( $_POST['product_type'] ) ? intval( sanitize_text_field( wp_unslash( $_POST['product_type'] ) ) ) : 0;
         $product_name = isset( $_POST['product_name'] ) ? sanitize_text_field( wp_unslash( $_POST['product_name'] ) ) : '';
         $product_code = isset( $_POST['product_code'] ) ? sanitize_text_field( wp_unslash( $_POST['product_code'] ) ) : '';
         $category = isset( $_POST['category'] ) ? sanitize_text_field( wp_unslash( $_POST['category'] ) ) : '';
@@ -434,7 +512,7 @@ function inventory_management_handle_submissions() {
         if ( $product_id > 0 ) {
             $existing_product = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}products WHERE id = %d", $product_id ) );
             if ( $existing_product ) {
-                $product_type = isset( $_POST['product_type'] ) ? sanitize_text_field( wp_unslash( $_POST['product_type'] ) ) : 'Standard';
+                $product_type = isset( $_POST['product_type'] ) ? intval( sanitize_text_field( wp_unslash( $_POST['product_type'] ) ) ) : 0;
                 $product_name = isset( $_POST['product_name'] ) ? sanitize_text_field( wp_unslash( $_POST['product_name'] ) ) : '';
                 $product_code = isset( $_POST['product_code'] ) ? sanitize_text_field( wp_unslash( $_POST['product_code'] ) ) : '';
                 $category = isset( $_POST['category'] ) ? sanitize_text_field( wp_unslash( $_POST['category'] ) ) : '';
@@ -1958,7 +2036,17 @@ function posdash_search_raw_material_products() {
         $cat_query = $wpdb->prepare( " AND category = %s", $cat );
     }
     
-    $results = $wpdb->get_results( $wpdb->prepare( "SELECT id, product_name as name, category, cost FROM $table WHERE product_type = 'Raw Material' AND (product_name LIKE %s OR id LIKE %s) $cat_query LIMIT 50", '%' . $wpdb->esc_like( $term ) . '%', '%' . $wpdb->esc_like( $term ) . '%' ) );
+    $results = $wpdb->get_results( $wpdb->prepare( "
+        SELECT p.id, p.product_name as name, p.category, p.cost 
+        FROM $table p
+        LEFT JOIN {$wpdb->prefix}product_type t ON p.product_type = t.id
+        WHERE (t.Type = 'Raw Material' OR p.product_type = 'Raw Material') 
+          AND (p.product_name LIKE %s OR p.id LIKE %s) 
+          $cat_query 
+        LIMIT 50", 
+        '%' . $wpdb->esc_like( $term ) . '%', 
+        '%' . $wpdb->esc_like( $term ) . '%' 
+    ) );
     
     wp_send_json_success( $results );
 }

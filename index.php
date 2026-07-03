@@ -555,7 +555,12 @@ if ( strpos( $view, 'user-profile' ) !== false ) {
 // Render Dynamic Real-Time Products from wp_products
 if ( strpos( $view, 'list-product' ) !== false ) {
     global $wpdb;
-    $products = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}products ORDER BY id DESC" );
+    $products = $wpdb->get_results( "
+        SELECT p.*, t.Type as type_name 
+        FROM {$wpdb->prefix}products p
+        LEFT JOIN {$wpdb->prefix}product_type t ON p.product_type = t.id
+        ORDER BY p.id DESC
+    " );
     $tbody = '<tbody class="ligth-body">';
     if ( ! empty( $products ) ) {
         foreach ( $products as $index => $product ) {
@@ -563,7 +568,7 @@ if ( strpos( $view, 'list-product' ) !== false ) {
 
             $tbody .= '<tr>';
             $tbody .= '<td class="text-muted" style="font-size:12px;">#' . esc_html( $product->id ) . '</td>';
-            $tbody .= '<td>' . esc_html( $product->product_type ) . '</td>';
+            $tbody .= '<td>' . esc_html( ! empty( $product->type_name ) ? $product->type_name : $product->product_type ) . '</td>';
             $tbody .= '<td>' . esc_html( $product->category ) . '</td>';
             $tbody .= '<td>' . esc_html( $product->product_name ) . '</td>';
             $tbody .= '<td>₹' . esc_html( $cost ) . '</td>';
@@ -608,7 +613,7 @@ if ( strpos( $view, 'list-product' ) !== false ) {
     $type_options = '';
     if ( ! empty( $types ) ) {
         foreach ( $types as $t ) {
-            $type_options .= '<option value="' . esc_attr( $t->Type ) . '">' . esc_html( $t->Type ) . '</option>';
+            $type_options .= '<option value="' . esc_attr( $t->id ) . '">' . esc_html( $t->Type ) . '</option>';
         }
     }
     $content = str_replace( '<!-- EDIT_TYPE_OPTIONS -->', $type_options, $content );
@@ -1191,7 +1196,7 @@ if ( strpos( $view, 'add-product' ) !== false ) {
     $type_options = '';
     if ( ! empty( $types ) ) {
         foreach ( $types as $t ) {
-            $type_options .= '<option value="' . esc_attr( $t->Type ) . '">' . esc_html( $t->Type ) . '</option>';
+            $type_options .= '<option value="' . esc_attr( $t->id ) . '">' . esc_html( $t->Type ) . '</option>';
         }
     } else {
         $type_options .= '<option>Raw Material</option><option>Finished Product</option>';
