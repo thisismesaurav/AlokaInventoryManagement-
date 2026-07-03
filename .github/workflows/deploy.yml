@@ -1,35 +1,55 @@
-name: Deploy Theme to WordPress Server
+Name: Deploy Theme to WordPress_factory
+# Version: 1.0.2 — reliable theme path, no overlapping deploys, clearer logs
 
 on:
   push:
     branches:
-      - main
+      - master # Change to 'main' if that is your default branch
+  workflow_dispatch:
+
+# Overlapping FTP runs can corrupt the sync state and leave a half-uploaded theme.
+concurrency:
+  group: ftp-deploy-theme-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   deploy:
-    name: Deploy Theme via SFTP
+    name: Deploy Theme
     runs-on: ubuntu-latest
     steps:
-      - name: 🚚 Get latest code
+      - name: Get latest code
         uses: actions/checkout@v4
 
-      - name: 🚀 Sync files to Server
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      # Optional secret FTP_SERVER_DIR: full path to this theme on the server (must end with /).
+      # Use it when your FTP login lands in e.g. public_html, not inside the theme folder.
+      # If unset, ./ is used — fine only when the FTP account is already chrooted to the theme directory.
+      - name: Resolve theme path on server
+        id: ftp_paths
+        env:
+          FTP_SERVER_DIR: ${{ secrets.FTP_SERVER_DIR }}
+        run: |
+          if [ -n "$FTP_SERVER_DIR" ]; then
+            echo "server_dir=$FTP_SERVER_DIR" >> "$GITHUB_OUTPUT"
+            echo "Using FTP_SERVER_DIR for uploads."
+          else
+            echo "server_dir=./" >> "$GITHUB_OUTPUT"
+            echo "::notice::FTP_SERVER_DIR not set; using ./ — ensure your FTP user starts inside the active theme folder."
+          fi
+
+      - name: Sync files to server
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          port: ${{ secrets.FTP_PORT || 21 }} # Default to 21 for FTP/FTPS
-          protocol: ftps # Use 'ftps' (FTP over SSL) or 'ftp'
+          server-dir: ${{ steps.ftp_paths.outputs.server_dir }}
           local-dir: ./
-          server-dir: ${{ secrets.FTP_REMOTE_PATH }} # Path to your theme, e.g., /public_html/wp-content/themes/inventory-management/
+          timeout: 600000
+          log-level: standard
           exclude: |
-            **/.git*
-            **/.git*/**
-            .github/**
-            node_modules/**
-            package.json
-            package-lock.json
-            README.md
-            contributing.txt
-            unused-files-backup/**
+            **/.git/**
+            **/.github/**
+            **/node_modules/**
+            **/screenshot.png
+            **/README.md
+            **/.DS_Store
