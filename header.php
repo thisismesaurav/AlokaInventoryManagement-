@@ -106,12 +106,7 @@ if ( empty( $brand_logo ) ) {
                           <ul id="product" class="iq-submenu collapse" data-parent="#iq-sidebar-toggle">
                               <li class="">
                                   <a href="<?php echo esc_url( $home_url . 'list-product' ); ?>">
-                                      <i class="las la-minus"></i><span>List Product</span>
-                                  </a>
-                              </li>
-                              <li class="">
-                                  <a href="<?php echo esc_url( $home_url . 'add-product' ); ?>">
-                                      <i class="las la-minus"></i><span>Add Product</span>
+                                      <i class="las la-minus"></i><span>Product</span>
                                   </a>
                               </li>
                           </ul>
