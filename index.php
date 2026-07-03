@@ -631,7 +631,11 @@ if ( strpos( $view, 'list-users' ) !== false ) {
             $tbody .= '<td>' . esc_html( $emp->address ) . '</td>';
             $tbody .= '<td>' . esc_html( $emp->status ) . '</td>';
             $edit_btn = '<a class="badge bg-success mr-2" data-toggle="tooltip" data-placement="top" title="Edit" href="#" onclick="window.openEditUserModal(' . intval( $emp->id ) . '); return false;"><i class="ri-pencil-line mr-0"></i></a>';
-            $delete_btn = '<a class="badge bg-warning mr-2" data-toggle="tooltip" data-placement="top" title="Delete" href="' . esc_url( home_url( '/?action=delete_employee&id=' . $emp->id ) ) . '" onclick="return confirm(\'Are you sure you want to delete this user?\');"><i class="ri-delete-bin-line mr-0"></i></a>';
+            $delete_url = wp_nonce_url(
+                home_url( '/?action=delete_employee&id=' . $emp->id ),
+                'posdash_delete_delete_employee_' . $emp->id
+            );
+            $delete_btn = '<a class="badge bg-warning mr-2" data-toggle="tooltip" data-placement="top" title="Delete" href="' . esc_url( $delete_url ) . '" onclick="if(!window.currentIsAdmin){ alert(\'This action is only allowed for administrator.\'); return false; } return confirm(\'Are you sure you want to delete this user?\');"><i class="ri-delete-bin-line mr-0"></i></a>';
             $tbody .= '<td><div class="d-flex align-items-center list-action">' . $edit_btn . $delete_btn . '</div></td>';
             $tbody .= '</tr>';
         }
@@ -641,7 +645,7 @@ if ( strpos( $view, 'list-users' ) !== false ) {
     $tbody .= '</tbody>';
 
     $content = preg_replace( '/<tbody class="ligth-body">.*?<\/tbody>/s', $tbody, $content );
-    $content .= '<script>window.employeeList = ' . wp_json_encode( $employees ) . '; window.themeUri = "' . esc_url( get_template_directory_uri() ) . '";</script>';
+    $content .= '<script>window.employeeList = ' . wp_json_encode( $employees ) . '; window.themeUri = "' . esc_url( get_template_directory_uri() ) . '"; window.currentIsAdmin = ' . ( current_user_can( 'administrator' ) ? 'true' : 'false' ) . ';</script>';
 }
 
 // Extend Categories sidebar dropdown dynamically across all page templates
@@ -744,7 +748,6 @@ if ( strpos( $view, 'list-customers' ) !== false ) {
     $tbody = '<tbody class="ligth-body">';
     if ( ! empty( $customers ) ) {
         foreach ( $customers as $index => $cust ) {
-            $cb_id = 'checkbox' . ( $index + 2 );
             $tbody .= '<tr>';
             $tbody .= '<td>' . esc_html( isset( $cust->company_name ) ? $cust->company_name : '' ) . '</td>';
             $tbody .= '<td>' . esc_html( $cust->name ) . '</td>';
@@ -756,9 +759,17 @@ if ( strpos( $view, 'list-customers' ) !== false ) {
             $tbody .= '<td>' . esc_html( $cust->last_order ) . '</td>';
             $tbody .= '<td>';
             $tbody .= '<div class="d-flex align-items-center list-action">';
-            $tbody .= '<a class="badge badge-info mr-2" data-toggle="tooltip" data-placement="top" title="View" href="#"><i class="ri-eye-line mr-0"></i></a>';
-            $tbody .= '<a class="badge bg-success mr-2" data-toggle="tooltip" data-placement="top" title="Edit" href="#"><i class="ri-pencil-line mr-0"></i></a>';
-            $tbody .= '<a class="badge bg-warning mr-2" data-toggle="tooltip" data-placement="top" title="Delete" href="' . esc_url( home_url( '/?action=delete_customer&id=' . $cust->id ) ) . '" onclick="return confirm(\'Are you sure you want to delete this customer?\');"><i class="ri-delete-bin-line mr-0"></i></a>';
+            
+            // Edit Button
+            $tbody .= '<a class="badge bg-success mr-2" data-toggle="tooltip" data-placement="top" title="Edit" href="#" onclick="window.openEditCustomerModal(' . intval( $cust->id ) . '); return false;"><i class="ri-pencil-line mr-0"></i></a>';
+            
+            // Delete Button (Secure with Nonce)
+            $delete_url = wp_nonce_url(
+                home_url( '/?action=delete_customer&id=' . $cust->id ),
+                'posdash_delete_delete_customer_' . $cust->id
+            );
+            $tbody .= '<a class="badge bg-warning mr-2" data-toggle="tooltip" data-placement="top" title="Delete" href="' . esc_url( $delete_url ) . '" onclick="if(!window.currentIsAdmin){ alert(\'This action is only allowed for administrator.\'); return false; } return confirm(\'Are you sure you want to delete this customer?\');"><i class="ri-delete-bin-line mr-0"></i></a>';
+            
             $tbody .= '</div>';
             $tbody .= '</td>';
             $tbody .= '</tr>';
@@ -768,6 +779,7 @@ if ( strpos( $view, 'list-customers' ) !== false ) {
     }
     $tbody .= '</tbody>';
     $content = preg_replace_callback( '/<tbody class="ligth-body">.*?<\/tbody>/s', function() use ($tbody) { return $tbody; }, $content );
+    $content .= '<script>window.customerList = ' . wp_json_encode( $customers ) . '; window.currentIsAdmin = ' . ( current_user_can( 'administrator' ) ? 'true' : 'false' ) . ';</script>';
 }
 
 // Render Dynamic Real-Time Suppliers from wp_suppliers
@@ -777,7 +789,6 @@ if ( strpos( $view, 'list-suppliers' ) !== false ) {
     $tbody = '<tbody class="ligth-body">';
     if ( ! empty( $suppliers ) ) {
         foreach ( $suppliers as $index => $supp ) {
-            $cb_id = 'checkbox' . ( $index + 2 );
             $tbody .= '<tr>';
             $tbody .= '<td>' . esc_html( $supp->company_name ) . '</td>';
             $tbody .= '<td>' . esc_html( $supp->name ) . '</td>';
@@ -788,9 +799,17 @@ if ( strpos( $view, 'list-suppliers' ) !== false ) {
             $tbody .= '<td>' . esc_html( $supp->gst_number ) . '</td>';
             $tbody .= '<td>';
             $tbody .= '<div class="d-flex align-items-center list-action">';
-            $tbody .= '<a class="badge badge-info mr-2" data-toggle="tooltip" data-placement="top" title="View" href="#"><i class="ri-eye-line mr-0"></i></a>';
-            $tbody .= '<a class="badge bg-success mr-2" data-toggle="tooltip" data-placement="top" title="Edit" href="#"><i class="ri-pencil-line mr-0"></i></a>';
-            $tbody .= '<a class="badge bg-warning mr-2" data-toggle="tooltip" data-placement="top" title="Delete" href="' . esc_url( home_url( '/?action=delete_supplier&id=' . $supp->id ) ) . '" onclick="return confirm(\'Are you sure you want to delete this supplier?\');"><i class="ri-delete-bin-line mr-0"></i></a>';
+            
+            // Edit Button
+            $tbody .= '<a class="badge bg-success mr-2" data-toggle="tooltip" data-placement="top" title="Edit" href="#" onclick="window.openEditSupplierModal(' . intval( $supp->id ) . '); return false;"><i class="ri-pencil-line mr-0"></i></a>';
+            
+            // Delete Button (Secure with Nonce)
+            $delete_url = wp_nonce_url(
+                home_url( '/?action=delete_supplier&id=' . $supp->id ),
+                'posdash_delete_delete_supplier_' . $supp->id
+            );
+            $tbody .= '<a class="badge bg-warning mr-2" data-toggle="tooltip" data-placement="top" title="Delete" href="' . esc_url( $delete_url ) . '" onclick="if(!window.currentIsAdmin){ alert(\'This action is only allowed for administrator.\'); return false; } return confirm(\'Are you sure you want to delete this supplier?\');"><i class="ri-delete-bin-line mr-0"></i></a>';
+            
             $tbody .= '</div>';
             $tbody .= '</td>';
             $tbody .= '</tr>';
@@ -800,6 +819,7 @@ if ( strpos( $view, 'list-suppliers' ) !== false ) {
     }
     $tbody .= '</tbody>';
     $content = preg_replace_callback( '/<tbody class="ligth-body">.*?<\/tbody>/s', function() use ($tbody) { return $tbody; }, $content );
+    $content .= '<script>window.supplierList = ' . wp_json_encode( $suppliers ) . '; window.currentIsAdmin = ' . ( current_user_can( 'administrator' ) ? 'true' : 'false' ) . ';</script>';
 }
 
 // Render Dynamic Real-Time Raw Material Logs from wp_raw_material

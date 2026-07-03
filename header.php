@@ -151,28 +151,13 @@ if ( empty( $brand_logo ) ) {
                                           </a>
                                   </li>
                                   <li class="">
-                                          <a href="<?php echo esc_url( $home_url . 'add-customers' ); ?>">
-                                              <i class="las la-minus"></i><span>Add Customers</span>
-                                          </a>
-                                  </li>
-                                  <li class="">
                                           <a href="<?php echo esc_url( $home_url . 'list-users' ); ?>">
-                                              <i class="las la-minus"></i><span>Users</span>
-                                          </a>
-                                  </li>
-                                  <li class="">
-                                          <a href="<?php echo esc_url( $home_url . 'add-users' ); ?>">
-                                              <i class="las la-minus"></i><span>Add Users</span>
+                                              <i class="las la-minus"></i><span>Employees</span>
                                           </a>
                                   </li>
                                   <li class="">
                                           <a href="<?php echo esc_url( $home_url . 'list-suppliers' ); ?>">
                                               <i class="las la-minus"></i><span>Suppliers</span>
-                                          </a>
-                                  </li>
-                                  <li class="">
-                                          <a href="<?php echo esc_url( $home_url . 'add-supplier' ); ?>">
-                                              <i class="las la-minus"></i><span>Add Suppliers</span>
                                           </a>
                                   </li>
                           </ul>

@@ -313,6 +313,9 @@ function inventory_management_handle_submissions() {
         }
 
         if ( 'delete_employee' === $action && $id > 0 ) {
+            if ( ! current_user_can( 'administrator' ) ) {
+                wp_die( esc_html__( 'This action is only allowed for administrator.', 'inventory-management' ) );
+            }
             $wpdb->delete( $wpdb->prefix . 'employee', array( 'id' => $id ) );
             wp_redirect( home_url( '/list-users' ) );
             exit;
@@ -337,12 +340,18 @@ function inventory_management_handle_submissions() {
         }
 
         if ( 'delete_customer' === $action && $id > 0 ) {
+            if ( ! current_user_can( 'administrator' ) ) {
+                wp_die( esc_html__( 'This action is only allowed for administrator.', 'inventory-management' ) );
+            }
             $wpdb->delete( $wpdb->prefix . 'customers', array( 'id' => $id ) );
             wp_redirect( home_url( '/list-customers' ) );
             exit;
         }
 
         if ( 'delete_supplier' === $action && $id > 0 ) {
+            if ( ! current_user_can( 'administrator' ) ) {
+                wp_die( esc_html__( 'This action is only allowed for administrator.', 'inventory-management' ) );
+            }
             $wpdb->delete( $wpdb->prefix . 'suppliers', array( 'id' => $id ) );
             wp_redirect( home_url( '/list-suppliers' ) );
             exit;
@@ -823,6 +832,50 @@ function inventory_management_handle_submissions() {
         exit;
     }
 
+    if ( 'edit_customer' === $action_type ) {
+        if ( ! current_user_can( 'administrator' ) ) {
+            wp_die( esc_html__( 'This action is only allowed for administrator.', 'inventory-management' ) );
+        }
+        $customer_id = isset( $_POST['customer_id'] ) ? intval( $_POST['customer_id'] ) : 0;
+        if ( $customer_id > 0 ) {
+            $existing_customer = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}customers WHERE id = %d", $customer_id ) );
+            if ( $existing_customer ) {
+                $company_name = isset( $_POST['company_name'] ) ? sanitize_text_field( wp_unslash( $_POST['company_name'] ) ) : '';
+                $name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+                $email = isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '';
+                $phone_number = isset( $_POST['phone_number'] ) ? sanitize_text_field( wp_unslash( $_POST['phone_number'] ) ) : '';
+                $country = isset( $_POST['country'] ) ? sanitize_text_field( wp_unslash( $_POST['country'] ) ) : '';
+                $address = isset( $_POST['address'] ) ? sanitize_textarea_field( wp_unslash( $_POST['address'] ) ) : '';
+                $city = isset( $_POST['city'] ) ? sanitize_text_field( wp_unslash( $_POST['city'] ) ) : '';
+                $state = isset( $_POST['state'] ) ? sanitize_text_field( wp_unslash( $_POST['state'] ) ) : '';
+                $customer_group = isset( $_POST['customer_group'] ) ? sanitize_text_field( wp_unslash( $_POST['customer_group'] ) ) : 'Retail';
+                $status = isset( $_POST['status'] ) ? sanitize_text_field( wp_unslash( $_POST['status'] ) ) : 'Active';
+
+                $wpdb->update(
+                    $wpdb->prefix . 'customers',
+                    array(
+                        'company_name'    => $company_name,
+                        'name'            => $name,
+                        'email'           => $email,
+                        'phone_number'    => $phone_number,
+                        'country'         => $country,
+                        'address'         => $address,
+                        'city'            => $city,
+                        'state'           => $state,
+                        'customer_group'  => $customer_group,
+                        'status'          => $status,
+                        'Last_upd_dt'     => current_time( 'mysql' ),
+                        'Last_updated_by' => $username,
+                    ),
+                    array( 'id' => $customer_id )
+                );
+            }
+        }
+
+        wp_redirect( home_url( '/list-customers' ) );
+        exit;
+    }
+
     if ( 'add_supplier' === $action_type ) {
         $company_name = isset( $_POST['company_name'] ) ? sanitize_text_field( wp_unslash( $_POST['company_name'] ) ) : '';
         $name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
@@ -855,6 +908,52 @@ function inventory_management_handle_submissions() {
                 'Last_updated_by' => $username,
             )
         );
+
+        wp_redirect( home_url( '/list-suppliers' ) );
+        exit;
+    }
+
+    if ( 'edit_supplier' === $action_type ) {
+        if ( ! current_user_can( 'administrator' ) ) {
+            wp_die( esc_html__( 'This action is only allowed for administrator.', 'inventory-management' ) );
+        }
+        $supplier_id = isset( $_POST['supplier_id'] ) ? intval( $_POST['supplier_id'] ) : 0;
+        if ( $supplier_id > 0 ) {
+            $existing_supplier = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}suppliers WHERE id = %d", $supplier_id ) );
+            if ( $existing_supplier ) {
+                $company_name = isset( $_POST['company_name'] ) ? sanitize_text_field( wp_unslash( $_POST['company_name'] ) ) : '';
+                $name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+                $email = isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '';
+                $phone_number = isset( $_POST['phone_number'] ) ? sanitize_text_field( wp_unslash( $_POST['phone_number'] ) ) : '';
+                $gst_number = isset( $_POST['gst_number'] ) ? sanitize_text_field( wp_unslash( $_POST['gst_number'] ) ) : '';
+                $address = isset( $_POST['address'] ) ? sanitize_textarea_field( wp_unslash( $_POST['address'] ) ) : '';
+                $city = isset( $_POST['city'] ) ? sanitize_text_field( wp_unslash( $_POST['city'] ) ) : '';
+                $state = isset( $_POST['state'] ) ? sanitize_text_field( wp_unslash( $_POST['state'] ) ) : '';
+                $country = isset( $_POST['country'] ) ? sanitize_text_field( wp_unslash( $_POST['country'] ) ) : '';
+
+                if ( empty( $company_name ) ) {
+                    $company_name = $name . ' Supply';
+                }
+
+                $wpdb->update(
+                    $wpdb->prefix . 'suppliers',
+                    array(
+                        'company_name'    => $company_name,
+                        'name'            => $name,
+                        'email'           => $email,
+                        'phone_number'    => $phone_number,
+                        'gst_number'      => $gst_number,
+                        'address'         => $address,
+                        'city'            => $city,
+                        'state'           => $state,
+                        'country'         => $country,
+                        'Last_upd_dt'     => current_time( 'mysql' ),
+                        'Last_updated_by' => $username,
+                    ),
+                    array( 'id' => $supplier_id )
+                );
+            }
+        }
 
         wp_redirect( home_url( '/list-suppliers' ) );
         exit;
