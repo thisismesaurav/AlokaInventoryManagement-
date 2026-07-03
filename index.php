@@ -563,7 +563,6 @@ if ( strpos( $view, 'list-product' ) !== false ) {
             $cost = number_format( (float) $product->cost, 2 );
 
             $tbody .= '<tr>';
-            $tbody .= '<td><div class="checkbox d-inline-block"><input type="checkbox" class="checkbox-input" id="' . esc_attr( $cb_id ) . '"><label for="' . esc_attr( $cb_id ) . '" class="mb-0"></label></div></td>';
             $tbody .= '<td>' . esc_html( $product->product_name ) . '</td>';
             $tbody .= '<td>' . esc_html( $product->product_code ) . '</td>';
             $tbody .= '<td>' . esc_html( $product->category ) . '</td>';
@@ -578,7 +577,7 @@ if ( strpos( $view, 'list-product' ) !== false ) {
             $tbody .= '</tr>';
         }
     } else {
-        $tbody .= '<tr><td colspan="6" class="text-center">No products found.</td></tr>';
+        $tbody .= '<tr><td colspan="5" class="text-center">No products found.</td></tr>';
     }
     $tbody .= '</tbody>';
 
@@ -594,7 +593,6 @@ if ( strpos( $view, 'list-users' ) !== false ) {
         foreach ( $employees as $index => $emp ) {
             $cb_id = 'checkbox' . ( $index + 2 );
             $tbody .= '<tr>';
-            $tbody .= '<td><div class="checkbox d-inline-block"><input type="checkbox" class="checkbox-input emp-checkbox" data-id="' . esc_attr( $emp->id ) . '" id="' . esc_attr( $cb_id ) . '"><label for="' . esc_attr( $cb_id ) . '" class="mb-0"></label></div></td>';
             $default_img = ( $emp->gender === 'Female' ) ? '/assets/images/user/11.png' : '/assets/images/user/1.jpg';
             $img_url = !empty( $emp->image ) ? $emp->image : get_template_directory_uri() . $default_img;
             $tbody .= '<td><div class="d-flex align-items-center"><img src="' . esc_url( $img_url ) . '" class="img-fluid rounded avatar-50 mr-3" alt="image"><div>' . esc_html( $emp->name ) . '</div></div></td>';
@@ -602,6 +600,9 @@ if ( strpos( $view, 'list-users' ) !== false ) {
             $tbody .= '<td>' . esc_html( $emp->company ) . '</td>';
             $tbody .= '<td>' . esc_html( $emp->address ) . '</td>';
             $tbody .= '<td>' . esc_html( $emp->status ) . '</td>';
+            $edit_btn = '<a class="badge bg-success mr-2" data-toggle="tooltip" data-placement="top" title="Edit" href="#" onclick="window.openEditUserModal(' . intval( $emp->id ) . '); return false;"><i class="ri-pencil-line mr-0"></i></a>';
+            $delete_btn = '<a class="badge bg-warning mr-2" data-toggle="tooltip" data-placement="top" title="Delete" href="' . esc_url( home_url( '/?action=delete_employee&id=' . $emp->id ) ) . '" onclick="return confirm(\'Are you sure you want to delete this user?\');"><i class="ri-delete-bin-line mr-0"></i></a>';
+            $tbody .= '<td><div class="d-flex align-items-center list-action">' . $edit_btn . $delete_btn . '</div></td>';
             $tbody .= '</tr>';
         }
     } else {
@@ -654,7 +655,6 @@ if ( strpos( $view, 'list-category' ) !== false ) {
             }
             $cb_id = 'checkbox' . ( $index + 2 );
             $tbody .= '<tr>';
-            $tbody .= '<td><div class="checkbox d-inline-block"><input type="checkbox" class="checkbox-input" id="' . esc_attr( $cb_id ) . '"><label for="' . esc_attr( $cb_id ) . '" class="mb-0"></label></div></td>';
             $tbody .= '<td><div class="d-flex align-items-center"><img src="' . esc_url( $img_url ) . '" class="img-fluid rounded avatar-50 mr-3" alt="image"><div>' . esc_html( $cat->name ) . '</div></div></td>';
             $tbody .= '<td>' . esc_html( $cat->code ) . '</td>';
             $tbody .= '<td>' . esc_html( $cat->name ) . '</td>';
@@ -668,7 +668,7 @@ if ( strpos( $view, 'list-category' ) !== false ) {
             $tbody .= '</tr>';
         }
     } else {
-        $tbody .= '<tr><td colspan="5" class="text-center">No categories found.</td></tr>';
+        $tbody .= '<tr><td colspan="4" class="text-center">No categories found.</td></tr>';
     }
     $tbody .= '</tbody>';
     $content = preg_replace( '/<tbody class="ligth-body">.*?<\/tbody>/s', $tbody, $content );
@@ -683,7 +683,6 @@ if ( strpos( $view, 'list-type' ) !== false ) {
         foreach ( $types as $index => $t ) {
             $cb_id = 'checkbox' . ( $index + 2 );
             $tbody .= '<tr>';
-            $tbody .= '<td><div class="checkbox d-inline-block"><input type="checkbox" class="checkbox-input" id="' . esc_attr( $cb_id ) . '"><label for="' . esc_attr( $cb_id ) . '" class="mb-0"></label></div></td>';
             $tbody .= '<td>' . esc_html( $t->id ) . '</td>';
             $tbody .= '<td>' . esc_html( $t->Type ) . '</td>';
             $tbody .= '<td>';
@@ -696,7 +695,7 @@ if ( strpos( $view, 'list-type' ) !== false ) {
             $tbody .= '</tr>';
         }
     } else {
-        $tbody .= '<tr><td colspan="4" class="text-center">No product types found.</td></tr>';
+        $tbody .= '<tr><td colspan="3" class="text-center">No product types found.</td></tr>';
     }
     $tbody .= '</tbody>';
     $content = preg_replace_callback( '/<tbody class="ligth-body">.*?<\/tbody>/s', function() use ($tbody) { return $tbody; }, $content );
@@ -711,7 +710,6 @@ if ( strpos( $view, 'list-customers' ) !== false ) {
         foreach ( $customers as $index => $cust ) {
             $cb_id = 'checkbox' . ( $index + 2 );
             $tbody .= '<tr>';
-            $tbody .= '<td><div class="checkbox d-inline-block"><input type="checkbox" class="checkbox-input" id="' . esc_attr( $cb_id ) . '"><label for="' . esc_attr( $cb_id ) . '" class="mb-0"></label></div></td>';
             $tbody .= '<td>' . esc_html( isset( $cust->company_name ) ? $cust->company_name : '' ) . '</td>';
             $tbody .= '<td>' . esc_html( $cust->name ) . '</td>';
             $tbody .= '<td>' . esc_html( $cust->email ) . '</td>';
@@ -730,7 +728,7 @@ if ( strpos( $view, 'list-customers' ) !== false ) {
             $tbody .= '</tr>';
         }
     } else {
-        $tbody .= '<tr><td colspan="10" class="text-center">No customers found.</td></tr>';
+        $tbody .= '<tr><td colspan="9" class="text-center">No customers found.</td></tr>';
     }
     $tbody .= '</tbody>';
     $content = preg_replace_callback( '/<tbody class="ligth-body">.*?<\/tbody>/s', function() use ($tbody) { return $tbody; }, $content );
@@ -745,7 +743,6 @@ if ( strpos( $view, 'list-suppliers' ) !== false ) {
         foreach ( $suppliers as $index => $supp ) {
             $cb_id = 'checkbox' . ( $index + 2 );
             $tbody .= '<tr>';
-            $tbody .= '<td><div class="checkbox d-inline-block"><input type="checkbox" class="checkbox-input" id="' . esc_attr( $cb_id ) . '"><label for="' . esc_attr( $cb_id ) . '" class="mb-0"></label></div></td>';
             $tbody .= '<td>' . esc_html( $supp->company_name ) . '</td>';
             $tbody .= '<td>' . esc_html( $supp->name ) . '</td>';
             $tbody .= '<td>' . esc_html( $supp->email ) . '</td>';
@@ -763,7 +760,7 @@ if ( strpos( $view, 'list-suppliers' ) !== false ) {
             $tbody .= '</tr>';
         }
     } else {
-        $tbody .= '<tr><td colspan="9" class="text-center">No suppliers found.</td></tr>';
+        $tbody .= '<tr><td colspan="8" class="text-center">No suppliers found.</td></tr>';
     }
     $tbody .= '</tbody>';
     $content = preg_replace_callback( '/<tbody class="ligth-body">.*?<\/tbody>/s', function() use ($tbody) { return $tbody; }, $content );
@@ -789,7 +786,6 @@ if ( strpos( $view, 'list-raw-material' ) !== false ) {
             $log_date = ! empty( $log->log_date ) ? date( 'M d, Y', strtotime( $log->log_date ) ) : 'N/A';
             
             $tbody .= '<tr>';
-            $tbody .= '<td><div class="checkbox d-inline-block"><input type="checkbox" class="checkbox-input" id="' . esc_attr( $cb_id ) . '"><label for="' . esc_attr( $cb_id ) . '" class="mb-0"></label></div></td>';
             $tbody .= '<td class="text-muted" style="font-size:12px;">#' . esc_html( $log->id ) . '</td>';
             $tbody .= '<td>' . esc_html( $log_date ) . '</td>';
             $tbody .= '<td>' . esc_html( $log->category ) . '</td>';
@@ -800,7 +796,7 @@ if ( strpos( $view, 'list-raw-material' ) !== false ) {
             $tbody .= '</tr>';
         }
     } else {
-        $tbody .= '<tr><td colspan="8" class="text-center">No raw material logs found.</td></tr>';
+        $tbody .= '<tr><td colspan="7" class="text-center">No raw material logs found.</td></tr>';
     }
     $tbody .= '</tbody>';
     $content = preg_replace_callback( '/<tbody class="ligth-body">.*?<\/tbody>/s', function() use ($tbody) { return $tbody; }, $content );
@@ -891,9 +887,7 @@ if ( strpos( $view, 'report-employee' ) !== false ) {
             $unit_cost = number_format( (float) $log->unit_labor_cost_snapshot, 2 );
             $total_payout = number_format( (float) $log->total_labor_payout, 2 );
             $produce_date = ! empty( $log->produce_date ) ? date( 'M d, Y', strtotime( $log->produce_date ) ) : 'N/A';
-            
             $tbody .= '<tr data-raw-date="' . esc_attr( $log->produce_date ) . '" data-emp-id="' . esc_attr( $log->emp_real_id ) . '" data-emp-name="' . esc_attr( strtolower($log->employee_name) ) . '">';
-            $tbody .= '<td><div class="checkbox d-inline-block"><input type="checkbox" class="checkbox-input" id="' . esc_attr( $cb_id ) . '"><label for="' . esc_attr( $cb_id ) . '" class="mb-0"></label></div></td>';
             $tbody .= '<td>' . esc_html( $produce_date ) . '</td>';
             $tbody .= '<td>' . esc_html( $log->category ) . '</td>';
             $tbody .= '<td>' . esc_html( $log->product_name ) . '</td>';
@@ -903,7 +897,7 @@ if ( strpos( $view, 'report-employee' ) !== false ) {
             $tbody .= '</tr>';
         }
     } else {
-        $tbody .= '<tr><td colspan="7" class="text-center">No records found.</td></tr>';
+        $tbody .= '<tr><td colspan="6" class="text-center">No records found.</td></tr>';
     }
     $tbody .= '</tbody>';
     $content = preg_replace_callback( '/<tbody class="ligth-body">.*?<\/tbody>/s', function() use ($tbody) { return $tbody; }, $content );
@@ -947,7 +941,6 @@ if ( strpos( $view, 'report-finished-product' ) !== false ) {
             $produce_date = ! empty( $log->produce_date ) ? date( 'M d, Y', strtotime( $log->produce_date ) ) : 'N/A';
             
             $tbody .= '<tr data-raw-date="' . esc_attr( $log->produce_date ) . '" data-category="' . esc_attr( strtolower($log->category) ) . '" data-product="' . esc_attr( strtolower($log->product_name) ) . '">';
-            $tbody .= '<td><div class="checkbox d-inline-block"><input type="checkbox" class="checkbox-input" id="' . esc_attr( $cb_id ) . '"><label for="' . esc_attr( $cb_id ) . '" class="mb-0"></label></div></td>';
             $tbody .= '<td>' . esc_html( $produce_date ) . '</td>';
             $tbody .= '<td>' . esc_html( $log->category ) . '</td>';
             $tbody .= '<td>' . esc_html( $log->product_name ) . '</td>';
@@ -958,7 +951,7 @@ if ( strpos( $view, 'report-finished-product' ) !== false ) {
             $tbody .= '</tr>';
         }
     } else {
-        $tbody .= '<tr><td colspan="8" class="text-center">No records found.</td></tr>';
+        $tbody .= '<tr><td colspan="7" class="text-center">No records found.</td></tr>';
     }
     $tbody .= '</tbody>';
     $content = preg_replace_callback( '/<tbody class="ligth-body">.*?<\/tbody>/s', function() use ($tbody) { return $tbody; }, $content );
@@ -1070,7 +1063,6 @@ if ( strpos( $view, 'report-salary' ) !== false ) {
                     $status_badge = ( $emp->status === 'Inactive' ) ? '<span class="badge badge-warning">Inactive</span>' : '<span class="badge badge-success">Active</span>';
 
                     $tbody .= '<tr data-year="' . esc_attr( $yr ) . '" data-month="' . esc_attr( $mo ) . '" data-emp-id="' . esc_attr( $emp->id ) . '" data-salary="' . esc_attr( $total_salary ) . '" style="display:none;">';
-                    $tbody .= '<td><div class="checkbox d-inline-block"><input type="checkbox" class="checkbox-input" id="' . esc_attr( $cb_id ) . '"><label for="' . esc_attr( $cb_id ) . '" class="mb-0"></label></div></td>';
                     $tbody .= '<td>' . esc_html( $emp->name ) . '</td>';
                     $tbody .= '<td>' . $status_badge . '</td>';
                     $tbody .= '<td class="font-weight-bold text-success">&#8377;' . esc_html( $salary ) . '</td>';
@@ -1083,7 +1075,7 @@ if ( strpos( $view, 'report-salary' ) !== false ) {
             }
         }
     } else {
-        $tbody .= '<tr id="salary-no-data-row"><td colspan="5" class="text-center text-muted">No employees found.</td></tr>';
+        $tbody .= '<tr id="salary-no-data-row"><td colspan="4" class="text-center text-muted">No employees found.</td></tr>';
     }
     $tbody .= '</tbody>';
 

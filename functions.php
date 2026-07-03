@@ -1061,9 +1061,6 @@ add_action( 'wp_footer', function() {
             var table = $('.report-employee-table').DataTable({
                 "pageLength": 10,
                 "order": [], 
-                "columnDefs": [
-                    { "orderable": false, "targets": 0 }
-                ],
                 "footerCallback": function (row, data, start, end, display) {
                     var api = this.api();
 
@@ -1075,11 +1072,11 @@ add_action( 'wp_footer', function() {
                         return typeof i === 'number' ? i : 0;
                     };
 
-                    var pageTotalQty = api.column(4, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
-                    var pageTotalCost = api.column(6, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    var pageTotalQty = api.column(3, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    var pageTotalCost = api.column(5, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
 
-                    $(api.column(4).footer()).html(pageTotalQty);
-                    $(api.column(6).footer()).html('â‚¹' + pageTotalCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                    $(api.column(3).footer()).html(pageTotalQty);
+                    $(api.column(5).footer()).html('₹' + pageTotalCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
                 }
             });
 
@@ -1210,9 +1207,6 @@ add_action( 'wp_footer', function() {
             var table = $('.report-product-table').DataTable({
                 "pageLength": 10,
                 "order": [],
-                "columnDefs": [
-                    { "orderable": false, "targets": 0 }
-                ],
                 "footerCallback": function (row, data, start, end, display) {
                     var api = this.api();
                     var intVal = function (i) {
@@ -1222,10 +1216,10 @@ add_action( 'wp_footer', function() {
                         }
                         return typeof i === 'number' ? i : 0;
                     };
-                    var pageTotalQty = api.column(4, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
-                    var pageTotalCost = api.column(6, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
-                    $(api.column(4).footer()).html(pageTotalQty);
-                    $(api.column(6).footer()).html('₹' + pageTotalCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                    var pageTotalQty = api.column(3, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    var pageTotalCost = api.column(5, { search: 'applied' }).data().reduce(function (a, b) { return intVal(a) + intVal(b); }, 0);
+                    $(api.column(3).footer()).html(pageTotalQty);
+                    $(api.column(5).footer()).html('₹' + pageTotalCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
                 }
             });
 
@@ -1335,7 +1329,7 @@ add_action( 'wp_footer', function() {
                 if ($('#salary-no-data-row').length === 0) {
                     if (visible === 0) {
                         if ($('#salary-empty-row').length === 0) {
-                            $('.salary-summary-table tbody').append('<tr id="salary-empty-row"><td colspan="5" class="text-center text-muted py-3">No salary data for ' + MONTH_NAMES[selMonth] + ' ' + selYear + '.</td></tr>');
+                            $('.salary-summary-table tbody').append('<tr id="salary-empty-row"><td colspan="4" class="text-center text-muted py-3">No salary data for ' + MONTH_NAMES[selMonth] + ' ' + selYear + '.</td></tr>');
                         }
                     } else {
                         $('#salary-empty-row').remove();

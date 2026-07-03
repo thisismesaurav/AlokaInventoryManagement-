@@ -8,7 +8,6 @@
                     </div>
                     <div class="d-flex align-items-center">
                         <a href="add-users.html" class="btn btn-primary add-list"><i class="las la-plus mr-3"></i>Add User</a>
-                        <button type="button" id="btn-edit-user" class="btn btn-primary add-list ml-2"><i class="las la-edit mr-3"></i>Edit User</button>
                     </div>
                 </div>
             </div>
@@ -17,17 +16,12 @@
                     <table class="data-table table mb-0 tbl-server-info">
                         <thead class="bg-white text-uppercase">
                             <tr class="ligth ligth-data">
-                                <th>
-                                    <div class="checkbox d-inline-block">
-                                        <input type="checkbox" class="checkbox-input" id="checkbox1">
-                                        <label for="checkbox1" class="mb-0"></label>
-                                    </div>
-                                </th>
                                 <th>Name</th>
                                 <th>Email</th>
                                 <th>Role/Position</th>
                                 <th>Address</th>
                                 <th>Status</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody class="ligth-body">
@@ -156,81 +150,67 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            var btnEditUser = document.getElementById('btn-edit-user');
             var editModal = $('#edit-user-modal');
 
-            // Handle edit button click
-            if (btnEditUser) {
-                btnEditUser.addEventListener('click', function() {
-                    var checkboxes = document.querySelectorAll('.emp-checkbox:checked');
-                    if (checkboxes.length === 0) {
-                        alert('Please select a user to edit.');
-                        return;
-                    }
-                    if (checkboxes.length > 1) {
-                        alert('Please select only one user to edit.');
-                        return;
-                    }
-
-                    var empId = checkboxes[0].getAttribute('data-id');
-                    var emp = null;
-                    if (window.employeeList) {
-                        for (var i = 0; i < window.employeeList.length; i++) {
-                            if (window.employeeList[i].id == empId) {
-                                emp = window.employeeList[i];
-                                break;
-                            }
+            // Handle edit button click via row action
+            window.openEditUserModal = function(empId) {
+                var emp = null;
+                if (window.employeeList) {
+                    for (var i = 0; i < window.employeeList.length; i++) {
+                        if (window.employeeList[i].id == empId) {
+                            emp = window.employeeList[i];
+                            break;
                         }
                     }
+                }
 
-                    if (!emp) {
-                        alert('User details could not be found.');
-                        return;
-                    }
+                if (!emp) {
+                    alert('User details could not be found.');
+                    return;
+                }
 
-                    // Pre-populate fields
-                    document.getElementById('edit_employee_id').value = emp.id;
-                    document.getElementById('edit_name').value = emp.name;
-                    document.getElementById('edit_phone').value = emp.phone;
-                    document.getElementById('edit_email').value = emp.email;
-                    document.getElementById('edit_gender_select').value = emp.gender;
-                    document.getElementById('edit_company').value = emp.company;
-                    document.getElementById('edit_status').value = emp.status;
-                    document.getElementById('edit_address').value = emp.address;
+                // Pre-populate fields
+                document.getElementById('edit_employee_id').value = emp.id;
+                document.getElementById('edit_name').value = emp.name;
+                document.getElementById('edit_phone').value = emp.phone;
+                document.getElementById('edit_email').value = emp.email;
+                document.getElementById('edit_gender_select').value = emp.gender;
+                document.getElementById('edit_company').value = emp.company;
+                document.getElementById('edit_status').value = emp.status;
+                document.getElementById('edit_address').value = emp.address;
 
-                    // Reset proof uploads and preview links
-                    document.getElementById('edit_proof_type').value = '';
-                    document.getElementById('edit_id_proof_container').style.display = 'none';
-                    document.getElementById('edit_address_proof_container').style.display = 'none';
-                    document.getElementById('edit_existing_id_proof').innerHTML = '';
-                    document.getElementById('edit_existing_address_proof').innerHTML = '';
+                // Reset proof uploads and preview links
+                document.getElementById('edit_proof_type').value = '';
+                document.getElementById('edit_id_proof_container').style.display = 'none';
+                document.getElementById('edit_address_proof_container').style.display = 'none';
+                document.getElementById('edit_existing_id_proof').innerHTML = '';
+                document.getElementById('edit_existing_address_proof').innerHTML = '';
 
-                    if (emp.id_proof_document) {
-                        document.getElementById('edit_existing_id_proof').innerHTML = 
-                            '<a href="' + emp.id_proof_document + '" target="_blank" class="btn btn-sm btn-outline-info"><i class="las la-eye"></i> View Current ID Proof</a>';
-                    }
-                    if (emp.address_proof_document) {
-                        document.getElementById('edit_existing_address_proof').innerHTML = 
-                            '<a href="' + emp.address_proof_document + '" target="_blank" class="btn btn-sm btn-outline-info"><i class="las la-eye"></i> View Current Address Proof</a>';
-                    }
+                if (emp.id_proof_document) {
+                    document.getElementById('edit_existing_id_proof').innerHTML = 
+                        '<a href="' + emp.id_proof_document + '" target="_blank" class="btn btn-sm btn-outline-info"><i class="las la-eye"></i> View Current ID Proof</a>';
+                }
+                if (emp.address_proof_document) {
+                    document.getElementById('edit_existing_address_proof').innerHTML = 
+                        '<a href="' + emp.address_proof_document + '" target="_blank" class="btn btn-sm btn-outline-info"><i class="las la-eye"></i> View Current Address Proof</a>';
+                }
 
-                    // Reset image previews and input
-                    document.getElementById('edit_image_upload').value = '';
-                    document.getElementById('edit_cropped_image').value = '';
-                    document.getElementById('edit_cropper_wrapper').style.display = 'none';
-                    if (editCropper) {
-                        editCropper.destroy();
-                        editCropper = null;
-                    }
+                // Reset image previews and input
+                document.getElementById('edit_image_upload').value = '';
+                document.getElementById('edit_cropped_image').value = '';
+                document.getElementById('edit_cropper_wrapper').style.display = 'none';
+                if (editCropper) {
+                    editCropper.destroy();
+                    editCropper = null;
+                }
 
-                    var themeUri = window.themeUri || '';
-                    var defaultImg = (emp.gender === 'Female') ? '/assets/images/user/11.png' : '/assets/images/user/1.jpg';
-                    var profileImg = emp.image ? emp.image : (themeUri + defaultImg);
-                    document.getElementById('edit_profile_preview').src = profileImg;
+                var themeUri = window.themeUri || '';
+                var defaultImg = (emp.gender === 'Female') ? '/assets/images/user/11.png' : '/assets/images/user/1.jpg';
+                var profileImg = emp.image ? emp.image : (themeUri + defaultImg);
+                document.getElementById('edit_profile_preview').src = profileImg;
 
-                    editModal.modal('show');
-                });
-            }
+                editModal.modal('show');
+            };
 
             // Handle gender change to update default profile preview if no custom image is selected
             var editGenderSelect = document.getElementById('edit_gender_select');
