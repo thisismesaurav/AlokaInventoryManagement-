@@ -19,8 +19,8 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          port: ${{ secrets.FTP_PORT || 22 }} # Default to 22 for SFTP
-          protocol: sftp # Use 'sftp' (secured) or 'ftp'
+          port: ${{ secrets.FTP_PORT || 21 }} # Default to 21 for FTP/FTPS
+          protocol: ftps # Use 'ftps' (FTP over SSL) or 'ftp'
           local-dir: ./
           server-dir: ${{ secrets.FTP_REMOTE_PATH }} # Path to your theme, e.g., /public_html/wp-content/themes/inventory-management/
           exclude: |
