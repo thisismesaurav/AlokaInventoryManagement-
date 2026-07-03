@@ -1,85 +1,95 @@
 <div class="content-page">
      <div class="container-fluid add-form-list">
-        <div class="row">
-            <div class="col-sm-12">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between">
-                        <div class="header-title">
-                            <h4 class="card-title">Add Product</h4>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <form action="" method="POST" enctype="multipart/form-data" data-toggle="validator">
-                            <input type="hidden" name="action_type" value="add_product">
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="form-group">
-                                        <label>Product Type *</label>
-                                        <select name="product_type" class="selectpicker form-control" data-style="py-0">
-                                            <option>Standard</option>
-                                            <option>Combo</option>
-                                            <option>Digital</option>
-                                            <option>Service</option>
-                                        </select>
-                                    </div> 
-                                </div>  
-                                <div class="col-md-6">                      
-                                    <div class="form-group">
-                                        <label>Name *</label>
-                                        <input type="text" name="product_name" class="form-control" placeholder="Enter Name" data-errors="Please Enter Name." required>
-                                        <div class="help-block with-errors"></div>
-                                    </div>
-                                </div>    
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Code *</label>
-                                        <input type="text" name="product_code" class="form-control" placeholder="Enter Code" data-errors="Please Enter Code." required>
-                                        <div class="help-block with-errors"></div>
-                                    </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Category *</label>
-                                        <select name="category" class="selectpicker form-control" data-style="py-0">
-                                            <option>Beauty</option>
-                                            <option>Grocery</option>
-                                            <option>Food</option>
-                                            <option>Furniture</option>
-                                            <option>Shoes</option>
-                                            <option>Frames</option>
-                                            <option>Jewellery</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Cost *</label>
-                                        <input type="text" name="cost" class="form-control" placeholder="Enter Cost" data-errors="Please Enter Cost." required>
-                                        <div class="help-block with-errors"></div>
-                                    </div>
-                                </div>
-                                <div class="col-md-12">                                    
-                                    <div class="form-group">
-                                        <label>Quantity *</label>
-                                        <input type="text" name="quantity" class="form-control" value="1" readonly required>
-                                        <div class="help-block with-errors"></div>
-                                    </div>
-                                </div>
+         <div class="row">
+             <div class="col-sm-12">
+                 <div class="card">
+                     <div class="card-header d-flex justify-content-between">
+                         <div class="header-title">
+                             <h4 class="card-title">Add Product</h4>
+                         </div>
+                     </div>
+                     <div class="card-body">
+                         <form action="" method="POST" enctype="multipart/form-data" data-toggle="validator">
+                             <input type="hidden" name="action_type" value="add_product">
+                             <div class="row">
+                                 <!-- Row 1: Product Type, Category, Image -->
+                                 <div class="col-md-4">
+                                     <div class="form-group">
+                                         <label>Product Type *</label>
+                                         <select name="product_type" class="selectpicker form-control" data-style="py-0">
+                                             <option>Standard</option>
+                                             <option>Combo</option>
+                                             <option>Digital</option>
+                                             <option>Service</option>
+                                         </select>
+                                     </div> 
+                                 </div>
+                                 <div class="col-md-4">
+                                     <div class="form-group">
+                                         <label>Category *</label>
+                                         <select name="category" class="selectpicker form-control" data-style="py-0">
+                                             <option>Beauty</option>
+                                             <option>Grocery</option>
+                                             <option>Food</option>
+                                             <option>Furniture</option>
+                                             <option>Shoes</option>
+                                             <option>Frames</option>
+                                             <option>Jewellery</option>
+                                         </select>
+                                     </div>
+                                 </div>
+                                 <div class="col-md-4">
+                                     <div class="form-group">
+                                         <label>Product Image</label>
+                                         <input type="file" name="pic" class="form-control-file" style="padding: 4px 0;">
+                                     </div>
+                                 </div>
 
-                                <div class="col-md-12">
-                                    <div class="form-group">
-                                        <label>Description / Product Details</label>
-                                        <textarea name="description" class="form-control" rows="4"></textarea>
-                                    </div>
-                                </div>
-                            </div>                            
-                            <button type="submit" class="btn btn-primary mr-2">Add Product</button>
-                            <button type="reset" class="btn btn-danger">Reset</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- Page end  -->
-    </div>
-      </div>
-    
+                                 <!-- Row 2: Name, Code, Cost -->
+                                 <div class="col-md-4">                      
+                                     <div class="form-group">
+                                         <label>Name *</label>
+                                         <input type="text" name="product_name" class="form-control" placeholder="Enter Name" data-errors="Please Enter Name." required>
+                                         <div class="help-block with-errors"></div>
+                                     </div>
+                                 </div>    
+                                 <div class="col-md-4">
+                                     <div class="form-group">
+                                         <label>Code *</label>
+                                         <input type="text" name="product_code" class="form-control" placeholder="Enter Code" data-errors="Please Enter Code." required>
+                                         <div class="help-block with-errors"></div>
+                                     </div>
+                                 </div>
+                                 <div class="col-md-4">
+                                     <div class="form-group">
+                                         <label>Cost *</label>
+                                         <input type="text" name="cost" class="form-control" placeholder="Enter Cost" data-errors="Please Enter Cost." required>
+                                         <div class="help-block with-errors"></div>
+                                     </div>
+                                 </div>
+
+                                 <!-- Row 3: Quantity (Readonly), Description -->
+                                 <div class="col-md-4">                                    
+                                     <div class="form-group">
+                                         <label>Quantity *</label>
+                                         <input type="text" name="quantity" class="form-control" value="1" readonly required>
+                                         <div class="help-block with-errors"></div>
+                                     </div>
+                                 </div>
+                                 <div class="col-md-8">
+                                     <div class="form-group">
+                                         <label>Description / Product Details</label>
+                                         <textarea name="description" class="form-control" rows="3" placeholder="Enter Description"></textarea>
+                                     </div>
+                                 </div>
+                             </div>                            
+                             <button type="submit" class="btn btn-primary mr-2">Add Product</button>
+                             <button type="reset" class="btn btn-danger">Reset</button>
+                         </form>
+                     </div>
+                 </div>
+             </div>
+         </div>
+         <!-- Page end  -->
+     </div>
+</div>
