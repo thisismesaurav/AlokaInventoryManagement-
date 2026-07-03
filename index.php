@@ -817,7 +817,7 @@ if ( strpos( $view, 'list-production-log' ) !== false ) {
         SELECT l.id, l.employee_id, e.name as employee_name, e.image as employee_image,
                l.product_id, p.product_name, p.category, l.quantity_produced,
                l.unit_labor_cost_snapshot, l.total_labor_payout, l.Created_dt, l.produce_date, l.created_by,
-               u.display_name as logged_by_name
+               u.user_login as logged_by_name
         FROM $log_table l
         LEFT JOIN $emp_table e ON l.employee_id = e.id
         LEFT JOIN $prod_table p ON l.product_id = p.id
