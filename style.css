@@ -38,3 +38,146 @@ body.admin-bar .iq-top-navbar {
     font-size: 12px !important;
 }
 
+/* Highlight the exact active page menu item in blue background */
+.iq-sidebar-menu ul li a.current-page-active {
+    background-color: #007bff !important; /* Premium active blue */
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    margin: 2px 10px !important;
+    padding: 10px 15px !important;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.25) !important;
+    transition: all 0.3s ease !important;
+}
+.iq-sidebar-menu ul li a.current-page-active i,
+.iq-sidebar-menu ul li a.current-page-active svg,
+.iq-sidebar-menu ul li a.current-page-active span {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+}
+
+/* Reset non-selected active parent menu links to prevent highlight */
+.sidebar-default .iq-sidebar-menu .iq-menu > li.active > a:not(.current-page-active) {
+    background: transparent !important;
+    color: #676E8A !important;
+    box-shadow: none !important;
+}
+.sidebar-default .iq-sidebar-menu .iq-menu > li.active > a:not(.current-page-active) svg {
+    color: #676E8A !important;
+}
+
+/* Reset active sub-menu list items' parent indicators if they are not the active page */
+.sidebar-default .iq-sidebar-menu .iq-menu li.active .iq-submenu li.active > a:not(.current-page-active) {
+    background: transparent !important;
+    color: #676E8A !important;
+}
+.sidebar-default .iq-sidebar-menu .iq-menu li.active .iq-submenu li.active > a:not(.current-page-active) svg {
+    color: #676E8A !important;
+}
+
+/* Center brand name in top header bar */
+.header-brand-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 99;
+    pointer-events: none;
+}
+.header-brand-center h4 {
+    font-weight: 800 !important;
+    font-size: 22px !important;
+    color: #11142d !important;
+    letter-spacing: 0.5px !important;
+}
+@media (max-width: 768px) {
+    .header-brand-center h4 {
+        font-size: 16px !important;
+    }
+}
+
+/* Center hamburger icon in collapsed sidebar */
+body.sidebar-main .iq-sidebar-logo {
+    transform: none !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    padding: 15px 0 !important;
+    margin: 5px 0 15px 0 !important;
+    width: 60px !important;
+}
+body.sidebar-main .iq-sidebar-logo a {
+    display: none !important;
+}
+body.sidebar-main .iq-menu-bt-sidebar {
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100% !important;
+}
+body.sidebar-main .iq-menu-bt-sidebar .wrapper-menu {
+    margin: 0 auto !important;
+    padding: 0 !important;
+    display: inline-block !important;
+    line-height: 1 !important;
+    height: auto !important;
+}
+
+/* Quick Actions Dashboard Card styles */
+.card-link {
+    text-decoration: none !important;
+    display: block;
+    height: 100%;
+}
+.quick-action-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
+}
+.quick-action-card:active {
+    transform: translateY(-2px);
+}
+
+/* Premium Stats Card Styles with Hover Effects and Custom Shadow Glows */
+.stat-card-products,
+.stat-card-staff,
+.stat-card-logs,
+.stat-card-payout {
+    border-radius: 16px !important;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    overflow: hidden;
+    position: relative;
+    border: none !important;
+}
+
+.stat-card-products {
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2) !important;
+}
+.stat-card-products:hover {
+    transform: translateY(-5px) !important;
+    box-shadow: 0 12px 25px rgba(37, 99, 235, 0.45) !important;
+}
+
+.stat-card-staff {
+    box-shadow: 0 4px 15px rgba(5, 150, 105, 0.2) !important;
+}
+.stat-card-staff:hover {
+    transform: translateY(-5px) !important;
+    box-shadow: 0 12px 25px rgba(5, 150, 105, 0.45) !important;
+}
+
+.stat-card-logs {
+    box-shadow: 0 4px 15px rgba(234, 88, 12, 0.2) !important;
+}
+.stat-card-logs:hover {
+    transform: translateY(-5px) !important;
+    box-shadow: 0 12px 25px rgba(234, 88, 12, 0.45) !important;
+}
+
+.stat-card-payout {
+    box-shadow: 0 4px 15px rgba(219, 39, 119, 0.2) !important;
+}
+.stat-card-payout:hover {
+    transform: translateY(-5px) !important;
+    box-shadow: 0 12px 25px rgba(219, 39, 119, 0.45) !important;
+}

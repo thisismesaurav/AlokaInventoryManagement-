@@ -78,10 +78,19 @@ add_action( 'wp_enqueue_scripts', 'inventory_management_scripts' );
  */
 function inventory_management_init_db() {
     global $wpdb;
-    $db_version = '1.8.0';
+    $db_version = '2.0.0';
     $installed_ver = get_option( 'inventory_management_db_version' );
 
-    if ( $installed_ver !== $db_version ) {
+    $table_products = $wpdb->prefix . 'products';
+    $table_category = $wpdb->prefix . 'prod_category';
+    $old_category   = $wpdb->prefix . 'Prod_Category';
+
+    // Rename Prod_Category to prod_category if the old camelCase table exists but the lowercase one doesn't (Linux case sensitivity helper)
+    if ( $wpdb->get_var( "SHOW TABLES LIKE '$old_category'" ) && ! $wpdb->get_var( "SHOW TABLES LIKE '$table_category'" ) ) {
+        $wpdb->query( "RENAME TABLE $old_category TO $table_category" );
+    }
+
+    if ( $installed_ver !== $db_version || ! $wpdb->get_var( "SHOW TABLES LIKE '$table_products'" ) || ! $wpdb->get_var( "SHOW TABLES LIKE '$table_category'" ) ) {
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         $charset_collate = $wpdb->get_charset_collate();
 
@@ -157,6 +166,7 @@ function inventory_management_init_db() {
             quantity_produced int(11) NOT NULL,
             unit_labor_cost_snapshot decimal(10,2) NOT NULL,
             total_labor_payout decimal(10,2) NOT NULL,
+            produce_date date NOT NULL DEFAULT '0000-00-00',
             Created_dt datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
             Last_upd_dt datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
             created_by bigint(20) unsigned NOT NULL DEFAULT 0,
@@ -166,8 +176,8 @@ function inventory_management_init_db() {
 
         dbDelta( $sql_prod_log );
 
-        // 3. Create wp_Prod_Category Table
-        $table_category = $wpdb->prefix . 'Prod_Category';
+        // 3. Create wp_prod_category Table
+        $table_category = $wpdb->prefix . 'prod_category';
         $sql_category = "CREATE TABLE $table_category (
             id bigint(20) NOT NULL AUTO_INCREMENT,
             name varchar(255) NOT NULL DEFAULT '',
@@ -200,6 +210,7 @@ function inventory_management_init_db() {
         $table_customers = $wpdb->prefix . 'customers';
         $sql_customers = "CREATE TABLE $table_customers (
             id bigint(20) NOT NULL AUTO_INCREMENT,
+            company_name varchar(255) NOT NULL DEFAULT '',
             name varchar(255) NOT NULL DEFAULT '',
             email varchar(255) NOT NULL DEFAULT '',
             phone_number varchar(100) NOT NULL DEFAULT '',
@@ -219,6 +230,14 @@ function inventory_management_init_db() {
         ) $charset_collate;";
 
         dbDelta( $sql_customers );
+
+        // Safe check to add company_name column if it does not exist
+        $existing_customers_columns = $wpdb->get_col( "DESCRIBE $table_customers" );
+        if ( ! empty( $existing_customers_columns ) ) {
+            if ( ! in_array( 'company_name', $existing_customers_columns ) ) {
+                $wpdb->query( "ALTER TABLE $table_customers ADD COLUMN company_name varchar(255) NOT NULL DEFAULT '' AFTER id" );
+            }
+        }
 
         // 6. Create wp_suppliers Table
         $table_suppliers = $wpdb->prefix . 'suppliers';
@@ -242,255 +261,21 @@ function inventory_management_init_db() {
 
         dbDelta( $sql_suppliers );
 
-        // 7. Seed products table if empty
-        $products_count = $wpdb->get_var( "SELECT COUNT(*) FROM $table_products" );
-        if ( 0 == $products_count ) {
-            $initial_products = array(
-                array( 'product_type' => 'Standard', 'product_name' => 'Organic Cream', 'product_code' => 'CREM01', 'category' => 'Beauty', 'cost' => 10.00, 'quantity' => 10.0, 'image' => 'assets/images/table/product/01.jpg', 'description' => 'This is test Product' ),
-                array( 'product_type' => 'Standard', 'product_name' => 'Rain Umbrella', 'product_code' => 'UM01', 'category' => 'Grocery', 'cost' => 20.00, 'quantity' => 15.0, 'image' => 'assets/images/table/product/02.jpg', 'description' => 'This is test Product' ),
-                array( 'product_type' => 'Standard', 'product_name' => 'Serum Bottle', 'product_code' => 'SEM01', 'category' => 'Beauty', 'cost' => 25.00, 'quantity' => 50.0, 'image' => 'assets/images/table/product/03.jpg', 'description' => 'This is test Product' ),
-                array( 'product_type' => 'Standard', 'product_name' => 'Coffee Beans', 'product_code' => 'COF01', 'category' => 'Food', 'cost' => 20.00, 'quantity' => 50.0, 'image' => 'assets/images/table/product/04.jpg', 'description' => 'This is test Product' ),
-                array( 'product_type' => 'Standard', 'product_name' => 'Book Shelves', 'product_code' => 'FUN01', 'category' => 'Furniture', 'cost' => 30.00, 'quantity' => 25.0, 'image' => 'assets/images/table/product/05.jpg', 'description' => 'This is test Product' ),
-                array( 'product_type' => 'Standard', 'product_name' => 'Dinner Set', 'product_code' => 'DIS01', 'category' => 'Grocery', 'cost' => 20.00, 'quantity' => 50.0, 'image' => 'assets/images/table/product/06.jpg', 'description' => 'This is test Product' ),
-                array( 'product_type' => 'Standard', 'product_name' => 'Nike Shoes', 'product_code' => 'NIS01', 'category' => 'Shoes', 'cost' => 50.00, 'quantity' => 100.0, 'image' => 'assets/images/table/product/07.jpg', 'description' => 'This is test Product' ),
-                array( 'product_type' => 'Standard', 'product_name' => 'Computer Glasses', 'product_code' => 'COG01', 'category' => 'Frames', 'cost' => 20.00, 'quantity' => 30.0, 'image' => 'assets/images/table/product/08.jpg', 'description' => 'This is test Product' ),
-                array( 'product_type' => 'Standard', 'product_name' => 'Alloy Jewel Set', 'product_code' => 'AJS01', 'category' => 'Jewellery', 'cost' => 50.00, 'quantity' => 200.0, 'image' => 'assets/images/table/product/09.jpg', 'description' => 'This is test Product' ),
-            );
+        // 8. Create wp_raw_material Table
+        $table_raw_material = $wpdb->prefix . 'raw_material';
+        $sql_raw_material = "CREATE TABLE $table_raw_material (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            log_date date NOT NULL DEFAULT '0000-00-00',
+            product_id bigint(20) NOT NULL,
+            quantity decimal(10,2) NOT NULL DEFAULT '0.00',
+            Created_dt datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+            Last_upd_dt datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+            created_by varchar(100) NOT NULL DEFAULT '',
+            Last_updated_by varchar(100) NOT NULL DEFAULT '',
+            PRIMARY KEY  (id)
+        ) $charset_collate;";
 
-            foreach ( $initial_products as $p ) {
-                $wpdb->insert(
-                    $table_products,
-                    array_merge( $p, array(
-                        'Created_dt'      => current_time( 'mysql' ),
-                        'Last_upd_dt'     => current_time( 'mysql' ),
-                        'created_by'      => 'admin',
-                        'Last_updated_by' => 'admin',
-                    ) )
-                );
-            }
-        }
-
-        // 8. Seed employee table if empty
-        $employee_count = $wpdb->get_var( "SELECT COUNT(*) FROM $table_employee" );
-        if ( 0 == $employee_count ) {
-            $initial_employees = array(
-                array( 'name' => 'Cliff Hanger', 'email' => 'cliff@gmail.com', 'phone' => '1234567890', 'gender' => 'Male', 'username' => 'Cliff', 'password' => wp_hash_password('cliff123'), 'company' => 'Product Manager', 'status' => 'Active' ),
-                array( 'name' => 'Terry Aki', 'email' => 'terry@gmail.com', 'phone' => '1234567891', 'gender' => 'Male', 'username' => 'Terry', 'password' => wp_hash_password('terry123'), 'company' => 'Stock CEO', 'status' => 'Active' ),
-                array( 'name' => 'Ira Membrit', 'email' => 'ira@gmail.com', 'phone' => '1234567892', 'gender' => 'Female', 'username' => 'Ira', 'password' => wp_hash_password('ira123'), 'company' => 'Stock Manager', 'status' => 'Active' ),
-                array( 'name' => 'Barb Ackue', 'email' => 'barb@gmail.com', 'phone' => '1234567893', 'gender' => 'Female', 'username' => 'Barb', 'password' => wp_hash_password('barb123'), 'company' => 'Stock Developer', 'status' => 'Active' ),
-                array( 'name' => 'Max Conversion', 'email' => 'max@gmail.com', 'phone' => '1234567894', 'gender' => 'Male', 'username' => 'Max', 'password' => wp_hash_password('max123'), 'company' => 'Stock Manager', 'status' => 'Active' ),
-                array( 'name' => 'Alex john', 'email' => 'alex@gmail.com', 'phone' => '1234567895', 'gender' => 'Male', 'username' => 'Alex', 'password' => wp_hash_password('alex123'), 'company' => 'Product Manager', 'status' => 'Active' ),
-                array( 'name' => 'Paige Turner', 'email' => 'paige@gmail.com', 'phone' => '1234567896', 'gender' => 'Female', 'username' => 'Paige', 'password' => wp_hash_password('paige123'), 'company' => 'Stock Developer', 'status' => 'Active' ),
-                array( 'name' => 'Greta Life', 'email' => 'greta@gmail.com', 'phone' => '1234567897', 'gender' => 'Female', 'username' => 'Greta', 'password' => wp_hash_password('greta123'), 'company' => 'Product Manager', 'status' => 'Active' ),
-                array( 'name' => 'Anna Mull', 'email' => 'anna@gmail.com', 'phone' => '1234567898', 'gender' => 'Female', 'username' => 'Anna', 'password' => wp_hash_password('anna123'), 'company' => 'Stock Manager', 'status' => 'Active' ),
-            );
-
-            foreach ( $initial_employees as $emp ) {
-                $wpdb->insert(
-                    $table_employee,
-                    array_merge( $emp, array(
-                        'Created_dt'      => current_time( 'mysql' ),
-                        'Last_upd_dt'     => current_time( 'mysql' ),
-                        'created_by'      => 'admin',
-                        'Last_updated_by' => 'admin',
-                    ) )
-                );
-            }
-        }
-
-        // 9. Seed wp_Prod_Category table if empty
-        $category_count = $wpdb->get_var( "SELECT COUNT(*) FROM $table_category" );
-        if ( 0 == $category_count ) {
-            $initial_categories = array(
-                array( 'name' => 'Beauty', 'code' => 'CREM01', 'image' => 'assets/images/table/product/01.jpg' ),
-                array( 'name' => 'Grocery', 'code' => 'UM01', 'image' => 'assets/images/table/product/02.jpg' ),
-                array( 'name' => 'Beauty', 'code' => 'SEM01', 'image' => 'assets/images/table/product/03.jpg' ),
-                array( 'name' => 'Food', 'code' => 'COF01', 'image' => 'assets/images/table/product/04.jpg' ),
-                array( 'name' => 'Furniture', 'code' => 'FUN01', 'image' => 'assets/images/table/product/05.jpg' ),
-                array( 'name' => 'Grocery', 'code' => 'DIS01', 'image' => 'assets/images/table/product/06.jpg' ),
-                array( 'name' => 'Shoes', 'code' => 'NIS01', 'image' => 'assets/images/table/product/07.jpg' ),
-                array( 'name' => 'Frames', 'code' => 'COG01', 'image' => 'assets/images/table/product/08.jpg' ),
-                array( 'name' => 'Jewellery', 'code' => 'AJS01', 'image' => 'assets/images/table/product/09.jpg' ),
-            );
-            foreach ( $initial_categories as $cat ) {
-                $wpdb->insert(
-                    $table_category,
-                    array_merge( $cat, array(
-                        'Created_dt'      => current_time( 'mysql' ),
-                        'Last_upd_dt'     => current_time( 'mysql' ),
-                        'created_by'      => 'admin',
-                        'Last_updated_by' => 'admin',
-                    ) )
-                );
-            }
-        }
-
-        // 10. Seed wp_product_type table if empty
-        $type_count = $wpdb->get_var( "SELECT COUNT(*) FROM $table_type" );
-        if ( 0 == $type_count ) {
-            $initial_types = array(
-                array( 'Type' => 'Raw Material' ),
-                array( 'Type' => 'Finished Product' ),
-            );
-            foreach ( $initial_types as $t ) {
-                $wpdb->insert(
-                    $table_type,
-                    array_merge( $t, array(
-                        'Created_dt'      => current_time( 'mysql' ),
-                        'Last_upd_dt'     => current_time( 'mysql' ),
-                        'created_by'      => 'admin',
-                        'Last_updated_by' => 'admin',
-                    ) )
-                );
-            }
-        }
-
-        // 11. Seed wp_customers table if empty
-        $customers_count = $wpdb->get_var( "SELECT COUNT(*) FROM $table_customers" );
-        if ( 0 == $customers_count ) {
-            $initial_customers = array(
-                array( 'name' => 'Max Conversion', 'email' => 'max@gmail.com', 'phone_number' => '0123456789', 'country' => 'USA', 'address' => '123 Pine St', 'city' => 'Petaling', 'state' => 'Selangor', 'customer_group' => 'Retail', 'order_count' => 2, 'status' => 'Pending', 'last_order' => '1' ),
-                array( 'name' => 'Alex john', 'email' => 'alex@gmail.com', 'phone_number' => '0123456123', 'country' => 'USA', 'address' => '456 Oak St', 'city' => 'Nanjing', 'state' => 'Jiangsu', 'customer_group' => 'Retail', 'order_count' => 3, 'status' => 'Pending', 'last_order' => '2' ),
-                array( 'name' => 'Cliff Hanger', 'email' => 'cliff@gmail.com', 'phone_number' => '0189556789', 'country' => 'UK', 'address' => '789 Maple Rd', 'city' => 'Guilin', 'state' => 'Guangxi', 'customer_group' => 'Wholesale', 'order_count' => 3, 'status' => 'Pending', 'last_order' => '3' ),
-                array( 'name' => 'Terry Aki', 'email' => 'terry@gmail.com', 'phone_number' => '0123205789', 'country' => 'USA', 'address' => '321 Elm Ave', 'city' => 'Suzhou', 'state' => 'Jiangsu', 'customer_group' => 'Retail', 'order_count' => 2, 'status' => 'Pending', 'last_order' => '2' ),
-                array( 'name' => 'Rock lai', 'email' => 'rock@gmail.com', 'phone_number' => '0123452289', 'country' => 'UK', 'address' => '654 Birch Dr', 'city' => 'whopping', 'state' => 'London', 'customer_group' => 'Retail', 'order_count' => 3, 'status' => 'Pending', 'last_order' => '1' ),
-                array( 'name' => 'Pete Sariya', 'email' => 'pete@gmail.com', 'phone_number' => '0111456789', 'country' => 'USA', 'address' => '987 Cedar Ln', 'city' => 'Petaling', 'state' => 'Selangor', 'customer_group' => 'Wholesale', 'order_count' => 5, 'status' => 'Pending', 'last_order' => '4' ),
-                array( 'name' => 'Ira Membrit', 'email' => 'ira@gmail.com', 'phone_number' => '0123458719', 'country' => 'UK', 'address' => '159 Walnut Ave', 'city' => 'Francisco', 'state' => 'California', 'customer_group' => 'Retail', 'order_count' => 4, 'status' => 'Pending', 'last_order' => '2' ),
-                array( 'name' => 'Barb Ackue', 'email' => 'barb@gmail.com', 'phone_number' => '0123246789', 'country' => 'USA', 'address' => '753 Chestnut St', 'city' => 'Miami', 'state' => 'Florida', 'customer_group' => 'Retail', 'order_count' => 2, 'status' => 'Pending', 'last_order' => '2' ),
-                array( 'name' => 'Paige Turner', 'email' => 'paige@gmail.com', 'phone_number' => '0125856789', 'country' => 'UK', 'address' => '852 Cherry Pl', 'city' => 'Orlando', 'state' => 'Florida', 'customer_group' => 'Wholesale', 'order_count' => 9, 'status' => 'Pending', 'last_order' => '7' ),
-            );
-            foreach ( $initial_customers as $cust ) {
-                $wpdb->insert(
-                    $table_customers,
-                    array_merge( $cust, array(
-                        'Created_dt'      => current_time( 'mysql' ),
-                        'Last_upd_dt'     => current_time( 'mysql' ),
-                        'created_by'      => 'admin',
-                        'Last_updated_by' => 'admin',
-                    ) )
-                );
-            }
-        }
-
-        // 12. Seed wp_suppliers table if empty
-        $suppliers_count = $wpdb->get_var( "SELECT COUNT(*) FROM $table_suppliers" );
-        if ( 0 == $suppliers_count ) {
-            $initial_suppliers = array(
-                array( 'company_name' => 'Fruits Supply', 'name' => 'Max Conversion', 'email' => 'max@gmail.com', 'phone_number' => '0123456789', 'gst_number' => '1234', 'address' => '123 Pine St', 'city' => 'Petaling', 'state' => 'Selangor', 'country' => 'USA' ),
-                array( 'company_name' => 'Footwear Supply', 'name' => 'Paige Turner', 'email' => 'paige@gmail.com', 'phone_number' => '0125856789', 'gst_number' => '1235', 'address' => '852 Cherry Pl', 'city' => 'Orlando', 'state' => 'Florida', 'country' => 'USA' ),
-                array( 'company_name' => 'Furniture Supply', 'name' => 'Barb Ackue', 'email' => 'barb@gmail.com', 'phone_number' => '0123246789', 'gst_number' => '1236', 'address' => '753 Chestnut St', 'city' => 'Miami', 'state' => 'Florida', 'country' => 'USA' ),
-                array( 'company_name' => 'Food Supply', 'name' => 'Ira Membrit', 'email' => 'ira@gmail.com', 'phone_number' => '0123458719', 'gst_number' => '1237', 'address' => '159 Walnut Ave', 'city' => 'Francisco', 'state' => 'California', 'country' => 'UK' ),
-                array( 'company_name' => 'Grocery Supply', 'name' => 'Pete Sariya', 'email' => 'pete@gmail.com', 'phone_number' => '0111456789', 'gst_number' => '1238', 'address' => '987 Cedar Ln', 'city' => 'Petaling', 'state' => 'Selangor', 'country' => 'USA' ),
-                array( 'company_name' => 'Packing Supply', 'name' => 'Rock lai', 'email' => 'rock@gmail.com', 'phone_number' => '0123452289', 'gst_number' => '1239', 'address' => '654 Birch Dr', 'city' => 'whopping', 'state' => 'London', 'country' => 'UK' ),
-                array( 'company_name' => 'Fish Supply', 'name' => 'Terry Aki', 'email' => 'terry@gmail.com', 'phone_number' => '0123205789', 'gst_number' => '1240', 'address' => '321 Elm Ave', 'city' => 'Suzhou', 'state' => 'Jiangsu', 'country' => 'USA' ),
-                array( 'company_name' => 'Cloth Supply', 'name' => 'Cliff Hanger', 'email' => 'cliff@gmail.com', 'phone_number' => '0189556789', 'gst_number' => '1241', 'address' => '789 Maple Rd', 'city' => 'Guilin', 'state' => 'Guangxi', 'country' => 'UK' ),
-                array( 'company_name' => 'Toy Supply', 'name' => 'Alex john', 'email' => 'alex@gmail.com', 'phone_number' => '0123456123', 'gst_number' => '1242', 'address' => '456 Oak St', 'city' => 'Nanjing', 'state' => 'Jiangsu', 'country' => 'USA' ),
-            );
-            foreach ( $initial_suppliers as $supp ) {
-                $wpdb->insert(
-                    $table_suppliers,
-                    array_merge( $supp, array(
-                        'Created_dt'      => current_time( 'mysql' ),
-                        'Last_upd_dt'     => current_time( 'mysql' ),
-                        'created_by'      => 'admin',
-                        'Last_updated_by' => 'admin',
-                    ) )
-                );
-            }
-        }
-
-        // 13. Custom migration to insert categories from catalog
-        $new_categories = array(
-            array( 'name' => 'T-SHIRT', 'code' => 'TS01', 'image' => 'assets/images/table/product/01.jpg' ),
-            array( 'name' => 'LOWER', 'code' => 'LW01', 'image' => 'assets/images/table/product/02.jpg' ),
-            array( 'name' => 'UPPER', 'code' => 'UP01', 'image' => 'assets/images/table/product/03.jpg' ),
-            array( 'name' => 'SHORTS', 'code' => 'SH01', 'image' => 'assets/images/table/product/04.jpg' ),
-            array( 'name' => 'KEPRY', 'code' => 'KP01', 'image' => 'assets/images/table/product/05.jpg' ),
-        );
-
-        foreach ( $new_categories as $cat ) {
-            $exists = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $table_category WHERE name = %s", $cat['name'] ) );
-            if ( ! $exists ) {
-                $wpdb->insert(
-                    $table_category,
-                    array_merge( $cat, array(
-                        'Created_dt'      => current_time( 'mysql' ),
-                        'Last_upd_dt'     => current_time( 'mysql' ),
-                        'created_by'      => 'admin',
-                        'Last_updated_by' => 'admin',
-                    ) )
-                );
-            }
-        }
-
-        // 14. Custom migration to insert products from catalog with cost=0, qty=1, generated codes
-        $catalog_products = array(
-            // T-SHIRT
-            array( 'category' => 'T-SHIRT', 'name' => 'Plain', 'code' => 'TS-P' ),
-            array( 'category' => 'T-SHIRT', 'name' => 'Pattern', 'code' => 'TS-PT' ),
-            array( 'category' => 'T-SHIRT', 'name' => 'Pattern 2', 'code' => 'TS-PT2' ),
-            array( 'category' => 'T-SHIRT', 'name' => 'Plain Pocket', 'code' => 'TS-PP' ),
-            array( 'category' => 'T-SHIRT', 'name' => 'Pattern Pocket', 'code' => 'TS-PTP' ),
-            array( 'category' => 'T-SHIRT', 'name' => 'Round Neck Plain', 'code' => 'TS-RNP' ),
-            array( 'category' => 'T-SHIRT', 'name' => 'Round Neck Pattern', 'code' => 'TS-RNPT' ),
-            array( 'category' => 'T-SHIRT', 'name' => 'Round Neck Pattern 2', 'code' => 'TS-RNPT2' ),
-            array( 'category' => 'T-SHIRT', 'name' => 'Chinese color Plain', 'code' => 'TS-CCP' ),
-            array( 'category' => 'T-SHIRT', 'name' => 'Chinese color Pattern', 'code' => 'TS-CCPT' ),
-            
-            // LOWER
-            array( 'category' => 'LOWER', 'name' => 'Plain', 'code' => 'LW-P' ),
-            array( 'category' => 'LOWER', 'name' => 'Plain 1 Pc chain', 'code' => 'LW-P1PC' ),
-            array( 'category' => 'LOWER', 'name' => 'Plain 2 Pc chain', 'code' => 'LW-P2PC' ),
-            array( 'category' => 'LOWER', 'name' => 'Plain 3 Pc chain', 'code' => 'LW-P3PC' ),
-            array( 'category' => 'LOWER', 'name' => 'Plain Back Pc chain', 'code' => 'LW-PBPC' ),
-            array( 'category' => 'LOWER', 'name' => 'Pattern', 'code' => 'LW-PT' ),
-            array( 'category' => 'LOWER', 'name' => 'Pattern 1 Pc chain', 'code' => 'LW-PT1PC' ),
-            array( 'category' => 'LOWER', 'name' => 'Pattern 2 Pc chain', 'code' => 'LW-PT2PC' ),
-            array( 'category' => 'LOWER', 'name' => 'Pattern 3 Pc chain', 'code' => 'LW-PT3PC' ),
-            array( 'category' => 'LOWER', 'name' => 'Pattern Back Pc chain', 'code' => 'LW-PTBPC' ),
-            
-            // UPPER
-            array( 'category' => 'UPPER', 'name' => 'Plain', 'code' => 'UP-P' ),
-            array( 'category' => 'UPPER', 'name' => 'Pattern', 'code' => 'UP-PT' ),
-            array( 'category' => 'UPPER', 'name' => 'Double Pattern', 'code' => 'UP-DP' ),
-            array( 'category' => 'UPPER', 'name' => '2 Pc Chain Plain', 'code' => 'UP-2PCP' ),
-            array( 'category' => 'UPPER', 'name' => '2 Pc Chain Pattern', 'code' => 'UP-2PCPT' ),
-            array( 'category' => 'UPPER', 'name' => '2 Pc chain DB pattern', 'code' => 'UP-2PCDBP' ),
-            
-            // SHORTS
-            array( 'category' => 'SHORTS', 'name' => 'Plain', 'code' => 'SH-P' ),
-            array( 'category' => 'SHORTS', 'name' => 'Single Piping', 'code' => 'SH-SP' ),
-            array( 'category' => 'SHORTS', 'name' => 'Double Piping', 'code' => 'SH-DP' ),
-            array( 'category' => 'SHORTS', 'name' => 'Pocket Plain', 'code' => 'SH-PP' ),
-            array( 'category' => 'SHORTS', 'name' => 'Pocket Pattern', 'code' => 'SH-PPT' ),
-            
-            // KEPRY
-            array( 'category' => 'KEPRY', 'name' => 'Plain', 'code' => 'KP-P' ),
-            array( 'category' => 'KEPRY', 'name' => 'Pattern', 'code' => 'KP-PT' ),
-        );
-
-        foreach ( $catalog_products as $cp ) {
-            $exists = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $table_products WHERE category = %s AND product_name = %s", $cp['category'], $cp['name'] ) );
-            if ( ! $exists ) {
-                $wpdb->insert(
-                    $table_products,
-                    array(
-                        'product_type'    => 'Standard',
-                        'product_name'    => $cp['name'],
-                        'product_code'    => $cp['code'],
-                        'category'        => $cp['category'],
-                        'cost'            => 0.00,
-                        'quantity'        => 1.00,
-                        'image'           => 'assets/images/table/product/01.jpg',
-                        'description'     => 'Real product data from catalog',
-                        'Created_dt'      => current_time( 'mysql' ),
-                        'Last_upd_dt'     => current_time( 'mysql' ),
-                        'created_by'      => 'admin',
-                        'Last_updated_by' => 'admin',
-                    )
-                );
-            }
-        }
+        dbDelta( $sql_raw_material );
 
         update_option( 'inventory_management_db_version', $db_version );
     }
@@ -503,10 +288,20 @@ add_action( 'after_setup_theme', 'inventory_management_init_db' );
 function inventory_management_handle_submissions() {
     global $wpdb;
 
+    // C2: Authentication gate — abort for unauthenticated users
+    if ( ! is_user_logged_in() ) {
+        return;
+    }
+
     // 1. Intercept DELETE actions
     if ( isset( $_GET['action'] ) ) {
         $action = sanitize_text_field( wp_unslash( $_GET['action'] ) );
         $id = isset( $_GET['id'] ) ? intval( $_GET['id'] ) : 0;
+
+        // C1: Verify nonce for all destructive GET actions
+        if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( wp_unslash( $_GET['_wpnonce'] ), 'posdash_delete_' . $action . '_' . $id ) ) {
+            wp_die( esc_html__( 'Security check failed. Please go back and try again.', 'inventory-management' ) );
+        }
 
         if ( 'delete_product' === $action && $id > 0 ) {
             $wpdb->delete( $wpdb->prefix . 'products', array( 'id' => $id ) );
@@ -521,7 +316,7 @@ function inventory_management_handle_submissions() {
         }
 
         if ( 'delete_category' === $action && $id > 0 ) {
-            $wpdb->delete( $wpdb->prefix . 'Prod_Category', array( 'id' => $id ) );
+            $wpdb->delete( $wpdb->prefix . 'prod_category', array( 'id' => $id ) );
             wp_redirect( home_url( '/list-category' ) );
             exit;
         }
@@ -556,6 +351,11 @@ function inventory_management_handle_submissions() {
         return;
     }
 
+    // C1: Verify nonce for all POST submissions
+    if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( wp_unslash( $_POST['_wpnonce'] ), 'posdash_form_action' ) ) {
+        wp_die( esc_html__( 'Security check failed. Please go back and try again.', 'inventory-management' ) );
+    }
+
     $current_user = wp_get_current_user();
     $username = ! empty( $current_user->user_login ) ? $current_user->user_login : 'admin';
     $action_type = sanitize_text_field( wp_unslash( $_POST['action_type'] ) );
@@ -572,13 +372,17 @@ function inventory_management_handle_submissions() {
         // Handle File Upload
         $image_path = 'assets/images/table/product/01.jpg'; // default
         if ( ! empty( $_FILES['pic']['name'] ) ) {
-            require_once ABSPATH . 'wp-admin/includes/image.php';
-            require_once ABSPATH . 'wp-admin/includes/file.php';
-            require_once ABSPATH . 'wp-admin/includes/media.php';
+            // H3: Restrict MIME types
+            $file_type = wp_check_filetype( basename( $_FILES['pic']['name'] ) );
+            if ( strpos( $file_type['type'], 'image/' ) === 0 ) {
+                require_once ABSPATH . 'wp-admin/includes/image.php';
+                require_once ABSPATH . 'wp-admin/includes/file.php';
+                require_once ABSPATH . 'wp-admin/includes/media.php';
 
-            $attachment_id = media_handle_upload( 'pic', 0 );
-            if ( ! is_wp_error( $attachment_id ) ) {
-                $image_path = wp_get_attachment_url( $attachment_id );
+                $attachment_id = media_handle_upload( 'pic', 0 );
+                if ( ! is_wp_error( $attachment_id ) ) {
+                    $image_path = wp_get_attachment_url( $attachment_id );
+                }
             }
         }
 
@@ -611,45 +415,68 @@ function inventory_management_handle_submissions() {
         $gender = isset( $_POST['gender'] ) ? sanitize_text_field( wp_unslash( $_POST['gender'] ) ) : 'Male';
 
         $company = isset( $_POST['company'] ) ? sanitize_text_field( wp_unslash( $_POST['company'] ) ) : '';
-        $status = isset( $_POST['status'] ) ? sanitize_text_field( wp_unslash( $_POST['status'] ) ) : 'Active';
+        // M2/M3: Allowlist validation for status and gender
+        $allowed_statuses = array( 'Active', 'Inactive' );
+        $allowed_genders  = array( 'Male', 'Female' );
+        $status = isset( $_POST['status'] ) && in_array( $_POST['status'], $allowed_statuses, true ) ? $_POST['status'] : 'Active';
+        $gender = isset( $_POST['gender'] ) && in_array( $_POST['gender'], $allowed_genders, true ) ? $_POST['gender'] : 'Male';
         $address = isset( $_POST['address'] ) ? sanitize_textarea_field( wp_unslash( $_POST['address'] ) ) : '';
 
         $image_path = '';
         if ( ! empty( $_POST['cropped_image'] ) ) {
+            // H2: Validate that base64 string is actually a safe image before saving
             $base64_img = $_POST['cropped_image'];
-            $base64_str = substr( $base64_img, strpos( $base64_img, ',' ) + 1 );
-            $image_data = base64_decode( $base64_str );
-            $upload_dir = wp_upload_dir();
-            $safe_emp_name = sanitize_title( $name );
-            $filename = 'emp_' . $safe_emp_name . '_' . uniqid() . '.png';
-            $file_path = $upload_dir['path'] . '/' . $filename;
-            file_put_contents( $file_path, $image_data );
-            $image_path = $upload_dir['url'] . '/' . $filename;
+            if ( preg_match( '/^data:image\/(png|jpg|jpeg|gif|webp);base64,/', $base64_img ) ) {
+                $base64_str = substr( $base64_img, strpos( $base64_img, ',' ) + 1 );
+                $image_data = base64_decode( $base64_str, true );
+                if ( false !== $image_data ) {
+                    $image_info = @getimagesizefromstring( $image_data );
+                    if ( $image_info && isset( $image_info['mime'] ) && strpos( $image_info['mime'], 'image/' ) === 0 ) {
+                        $upload_dir = wp_upload_dir();
+                        $safe_emp_name = sanitize_title( $name );
+                        $filename = 'emp_' . $safe_emp_name . '_' . uniqid() . '.png';
+                        $file_path = $upload_dir['path'] . '/' . $filename;
+                        file_put_contents( $file_path, $image_data );
+                        $image_path = $upload_dir['url'] . '/' . $filename;
+                    }
+                }
+            }
         }
 
+        // H3: Restrict allowed MIME types for proof documents
+        $allowed_proof_mimes = array(
+            'pdf'  => 'application/pdf',
+            'jpg'  => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png'  => 'image/png',
+        );
         $id_proof_path = '';
         if ( ! empty( $_FILES['id_proof_document']['name'] ) ) {
             require_once ABSPATH . 'wp-admin/includes/file.php';
-            $ext = pathinfo( $_FILES['id_proof_document']['name'], PATHINFO_EXTENSION );
-            $safe_name = sanitize_title( $name );
-            $new_filename = $safe_name . '_id_proof.' . $ext;
-            $_FILES['id_proof_document']['name'] = $new_filename;
-            $uploaded_file = wp_handle_upload( $_FILES['id_proof_document'], array( 'test_form' => false ) );
-            if ( ! isset( $uploaded_file['error'] ) ) {
-                $id_proof_path = $uploaded_file['url'];
+            $ext = strtolower( pathinfo( $_FILES['id_proof_document']['name'], PATHINFO_EXTENSION ) );
+            if ( array_key_exists( $ext, $allowed_proof_mimes ) ) {
+                $safe_name = sanitize_title( $name );
+                $new_filename = $safe_name . '_id_proof.' . $ext;
+                $_FILES['id_proof_document']['name'] = $new_filename;
+                $uploaded_file = wp_handle_upload( $_FILES['id_proof_document'], array( 'test_form' => false, 'mimes' => $allowed_proof_mimes ) );
+                if ( ! isset( $uploaded_file['error'] ) ) {
+                    $id_proof_path = $uploaded_file['url'];
+                }
             }
         }
 
         $address_proof_path = '';
         if ( ! empty( $_FILES['address_proof_document']['name'] ) ) {
             require_once ABSPATH . 'wp-admin/includes/file.php';
-            $ext = pathinfo( $_FILES['address_proof_document']['name'], PATHINFO_EXTENSION );
-            $safe_name = sanitize_title( $name );
-            $new_filename = $safe_name . '_address_proof.' . $ext;
-            $_FILES['address_proof_document']['name'] = $new_filename;
-            $uploaded_file = wp_handle_upload( $_FILES['address_proof_document'], array( 'test_form' => false ) );
-            if ( ! isset( $uploaded_file['error'] ) ) {
-                $address_proof_path = $uploaded_file['url'];
+            $ext = strtolower( pathinfo( $_FILES['address_proof_document']['name'], PATHINFO_EXTENSION ) );
+            if ( array_key_exists( $ext, $allowed_proof_mimes ) ) {
+                $safe_name = sanitize_title( $name );
+                $new_filename = $safe_name . '_address_proof.' . $ext;
+                $_FILES['address_proof_document']['name'] = $new_filename;
+                $uploaded_file = wp_handle_upload( $_FILES['address_proof_document'], array( 'test_form' => false, 'mimes' => $allowed_proof_mimes ) );
+                if ( ! isset( $uploaded_file['error'] ) ) {
+                    $address_proof_path = $uploaded_file['url'];
+                }
             }
         }
 
@@ -685,50 +512,70 @@ function inventory_management_handle_submissions() {
                 $name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
                 $phone = isset( $_POST['phone'] ) ? sanitize_text_field( wp_unslash( $_POST['phone'] ) ) : '';
                 $email = isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '';
-                $gender = isset( $_POST['gender'] ) ? sanitize_text_field( wp_unslash( $_POST['gender'] ) ) : 'Male';
+                // M2/M3: Allowlist validation for status and gender in edit
+                $allowed_statuses = array( 'Active', 'Inactive' );
+                $allowed_genders  = array( 'Male', 'Female' );
+                $gender = isset( $_POST['gender'] ) && in_array( $_POST['gender'], $allowed_genders, true ) ? $_POST['gender'] : 'Male';
                 $company = isset( $_POST['company'] ) ? sanitize_text_field( wp_unslash( $_POST['company'] ) ) : '';
-                $status = isset( $_POST['status'] ) ? sanitize_text_field( wp_unslash( $_POST['status'] ) ) : 'Active';
+                $status = isset( $_POST['status'] ) && in_array( $_POST['status'], $allowed_statuses, true ) ? $_POST['status'] : 'Active';
                 $address = isset( $_POST['address'] ) ? sanitize_textarea_field( wp_unslash( $_POST['address'] ) ) : '';
 
-                // Handle profile image update
+                // Handle profile image update — H2: validate image before saving
                 $image_path = $existing_emp->image;
                 if ( ! empty( $_POST['cropped_image'] ) ) {
                     $base64_img = $_POST['cropped_image'];
-                    $base64_str = substr( $base64_img, strpos( $base64_img, ',' ) + 1 );
-                    $image_data = base64_decode( $base64_str );
-                    $upload_dir = wp_upload_dir();
-                    $safe_emp_name = sanitize_title( $name );
-                    $filename = 'emp_' . $safe_emp_name . '_' . uniqid() . '.png';
-                    $file_path = $upload_dir['path'] . '/' . $filename;
-                    file_put_contents( $file_path, $image_data );
-                    $image_path = $upload_dir['url'] . '/' . $filename;
-                }
-
-                // Handle ID Proof
-                $id_proof_path = $existing_emp->id_proof_document;
-                if ( ! empty( $_FILES['id_proof_document']['name'] ) ) {
-                    require_once ABSPATH . 'wp-admin/includes/file.php';
-                    $ext = pathinfo( $_FILES['id_proof_document']['name'], PATHINFO_EXTENSION );
-                    $safe_name = sanitize_title( $name );
-                    $new_filename = $safe_name . '_id_proof.' . $ext;
-                    $_FILES['id_proof_document']['name'] = $new_filename;
-                    $uploaded_file = wp_handle_upload( $_FILES['id_proof_document'], array( 'test_form' => false ) );
-                    if ( ! isset( $uploaded_file['error'] ) ) {
-                        $id_proof_path = $uploaded_file['url'];
+                    if ( preg_match( '/^data:image\/(png|jpg|jpeg|gif|webp);base64,/', $base64_img ) ) {
+                        $base64_str = substr( $base64_img, strpos( $base64_img, ',' ) + 1 );
+                        $image_data = base64_decode( $base64_str, true );
+                        if ( false !== $image_data ) {
+                            $image_info = @getimagesizefromstring( $image_data );
+                            if ( $image_info && isset( $image_info['mime'] ) && strpos( $image_info['mime'], 'image/' ) === 0 ) {
+                                $upload_dir = wp_upload_dir();
+                                $safe_emp_name = sanitize_title( $name );
+                                $filename = 'emp_' . $safe_emp_name . '_' . uniqid() . '.png';
+                                $file_path = $upload_dir['path'] . '/' . $filename;
+                                file_put_contents( $file_path, $image_data );
+                                $image_path = $upload_dir['url'] . '/' . $filename;
+                            }
+                        }
                     }
                 }
 
-                // Handle Address Proof
+                // Handle ID Proof — H3: restrict MIME types
+                $allowed_proof_mimes_edit = array(
+                    'pdf'  => 'application/pdf',
+                    'jpg'  => 'image/jpeg',
+                    'jpeg' => 'image/jpeg',
+                    'png'  => 'image/png',
+                );
+                $id_proof_path = $existing_emp->id_proof_document;
+                if ( ! empty( $_FILES['id_proof_document']['name'] ) ) {
+                    require_once ABSPATH . 'wp-admin/includes/file.php';
+                    $ext = strtolower( pathinfo( $_FILES['id_proof_document']['name'], PATHINFO_EXTENSION ) );
+                    if ( array_key_exists( $ext, $allowed_proof_mimes_edit ) ) {
+                        $safe_name = sanitize_title( $name );
+                        $new_filename = $safe_name . '_id_proof.' . $ext;
+                        $_FILES['id_proof_document']['name'] = $new_filename;
+                        $uploaded_file = wp_handle_upload( $_FILES['id_proof_document'], array( 'test_form' => false, 'mimes' => $allowed_proof_mimes_edit ) );
+                        if ( ! isset( $uploaded_file['error'] ) ) {
+                            $id_proof_path = $uploaded_file['url'];
+                        }
+                    }
+                }
+
+                // Handle Address Proof — H3: restrict MIME types
                 $address_proof_path = $existing_emp->address_proof_document;
                 if ( ! empty( $_FILES['address_proof_document']['name'] ) ) {
                     require_once ABSPATH . 'wp-admin/includes/file.php';
-                    $ext = pathinfo( $_FILES['address_proof_document']['name'], PATHINFO_EXTENSION );
-                    $safe_name = sanitize_title( $name );
-                    $new_filename = $safe_name . '_address_proof.' . $ext;
-                    $_FILES['address_proof_document']['name'] = $new_filename;
-                    $uploaded_file = wp_handle_upload( $_FILES['address_proof_document'], array( 'test_form' => false ) );
-                    if ( ! isset( $uploaded_file['error'] ) ) {
-                        $address_proof_path = $uploaded_file['url'];
+                    $ext = strtolower( pathinfo( $_FILES['address_proof_document']['name'], PATHINFO_EXTENSION ) );
+                    if ( array_key_exists( $ext, $allowed_proof_mimes_edit ) ) {
+                        $safe_name = sanitize_title( $name );
+                        $new_filename = $safe_name . '_address_proof.' . $ext;
+                        $_FILES['address_proof_document']['name'] = $new_filename;
+                        $uploaded_file = wp_handle_upload( $_FILES['address_proof_document'], array( 'test_form' => false, 'mimes' => $allowed_proof_mimes_edit ) );
+                        if ( ! isset( $uploaded_file['error'] ) ) {
+                            $address_proof_path = $uploaded_file['url'];
+                        }
                     }
                 }
 
@@ -775,7 +622,7 @@ function inventory_management_handle_submissions() {
         }
 
         $wpdb->insert(
-            $wpdb->prefix . 'Prod_Category',
+            $wpdb->prefix . 'prod_category',
             array(
                 'name'            => $name,
                 'code'            => $code,
@@ -810,6 +657,7 @@ function inventory_management_handle_submissions() {
     }
 
     if ( 'add_customer' === $action_type ) {
+        $company_name = isset( $_POST['company_name'] ) ? sanitize_text_field( wp_unslash( $_POST['company_name'] ) ) : '';
         $name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
         $email = isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '';
         $phone_number = isset( $_POST['phone_number'] ) ? sanitize_text_field( wp_unslash( $_POST['phone_number'] ) ) : '';
@@ -822,6 +670,7 @@ function inventory_management_handle_submissions() {
         $wpdb->insert(
             $wpdb->prefix . 'customers',
             array(
+                'company_name'    => $company_name,
                 'name'            => $name,
                 'email'           => $email,
                 'phone_number'    => $phone_number,
@@ -880,13 +729,69 @@ function inventory_management_handle_submissions() {
         wp_redirect( home_url( '/list-suppliers' ) );
         exit;
     }
+
+    if ( 'edit_profile' === $action_type ) {
+        $current_user = wp_get_current_user();
+        if ( ! $current_user->exists() ) {
+            wp_redirect( home_url( '/auth-sign-in' ) );
+            exit;
+        }
+
+        $email = isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '';
+        $first_name = isset( $_POST['first_name'] ) ? sanitize_text_field( wp_unslash( $_POST['first_name'] ) ) : '';
+        $last_name = isset( $_POST['last_name'] ) ? sanitize_text_field( wp_unslash( $_POST['last_name'] ) ) : '';
+        $nickname = isset( $_POST['nickname'] ) ? sanitize_text_field( wp_unslash( $_POST['nickname'] ) ) : '';
+        $display_name = isset( $_POST['display_name'] ) ? sanitize_text_field( wp_unslash( $_POST['display_name'] ) ) : '';
+        $website = isset( $_POST['website'] ) ? sanitize_url( wp_unslash( $_POST['website'] ) ) : '';
+        $description = isset( $_POST['description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['description'] ) ) : '';
+
+        // Validation: Nickname is required
+        if ( empty( $nickname ) ) {
+            wp_redirect( home_url( '/user-profile?error=' . urlencode( 'Nickname cannot be empty.' ) ) );
+            exit;
+        }
+
+        // Validation: Email is required
+        if ( empty( $email ) ) {
+            wp_redirect( home_url( '/user-profile?error=' . urlencode( 'Email address cannot be empty.' ) ) );
+            exit;
+        }
+
+        // Prepare arguments for wp_update_user
+        $userdata = array(
+            'ID'           => $current_user->ID,
+            'user_email'   => $email,
+            'first_name'   => $first_name,
+            'last_name'    => $last_name,
+            'nickname'     => $nickname,
+            'display_name' => $display_name,
+            'user_url'     => $website,
+            'description'  => $description,
+        );
+
+        $result = wp_update_user( $userdata );
+
+        if ( is_wp_error( $result ) ) {
+            $error_message = urlencode( $result->get_error_message() );
+            wp_redirect( home_url( '/user-profile?error=' . $error_message ) );
+            exit;
+        } else {
+            wp_redirect( home_url( '/user-profile?success=profile_updated' ) );
+            exit;
+        }
+    }
 }
 add_action( 'template_redirect', 'inventory_management_handle_submissions' );
 // --- Daily Production Log AJAX Endpoints ---
 
 add_action( 'wp_ajax_search_employees', 'posdash_search_employees' );
-add_action( 'wp_ajax_nopriv_search_employees', 'posdash_search_employees' );
+// H1: Removed nopriv - requires login
 function posdash_search_employees() {
+    // H1: Authentication required for all AJAX data endpoints
+    if ( ! is_user_logged_in() ) {
+        wp_send_json_error( 'Authentication required.', 403 );
+        return;
+    }
     global $wpdb;
     $term = isset( $_GET['term'] ) ? sanitize_text_field( wp_unslash( $_GET['term'] ) ) : '';
     $table = $wpdb->prefix . 'employee';
@@ -901,8 +806,12 @@ function posdash_search_employees() {
 }
 
 add_action( 'wp_ajax_search_products', 'posdash_search_products' );
-add_action( 'wp_ajax_nopriv_search_products', 'posdash_search_products' );
+// H1: Removed nopriv - requires login
 function posdash_search_products() {
+    if ( ! is_user_logged_in() ) {
+        wp_send_json_error( 'Authentication required.', 403 );
+        return;
+    }
     global $wpdb;
     $term = isset( $_GET['term'] ) ? sanitize_text_field( wp_unslash( $_GET['term'] ) ) : '';
     $cat  = isset( $_GET['category'] ) ? sanitize_text_field( wp_unslash( $_GET['category'] ) ) : '';
@@ -919,12 +828,17 @@ function posdash_search_products() {
 }
 
 add_action( 'wp_ajax_get_daily_logs', 'posdash_get_daily_logs' );
-add_action( 'wp_ajax_nopriv_get_daily_logs', 'posdash_get_daily_logs' );
+// H1: Removed nopriv - requires login
 function posdash_get_daily_logs() {
+    if ( ! is_user_logged_in() ) {
+        wp_send_json_error( 'Authentication required.', 403 );
+        return;
+    }
     global $wpdb;
     $emp_id = isset( $_GET['employee_id'] ) ? intval( wp_unslash( $_GET['employee_id'] ) ) : 0;
     $date   = isset( $_GET['produce_date'] ) ? sanitize_text_field( wp_unslash( $_GET['produce_date'] ) ) : '';
-    if ( empty( $date ) ) {
+    // M1: Validate date format
+    if ( empty( $date ) || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
         $date = current_time( 'Y-m-d' );
     }
     
@@ -943,20 +857,28 @@ function posdash_get_daily_logs() {
 }
 
 add_action( 'wp_ajax_get_all_categories', 'posdash_get_all_categories' );
-add_action( 'wp_ajax_nopriv_get_all_categories', 'posdash_get_all_categories' );
+// H1: Removed nopriv - requires login
 function posdash_get_all_categories() {
+    if ( ! is_user_logged_in() ) {
+        wp_send_json_error( 'Authentication required.', 403 );
+        return;
+    }
     global $wpdb;
-    $table = $wpdb->prefix . 'Prod_Category';
+    $table = $wpdb->prefix . 'prod_category';
     $results = $wpdb->get_results( "SELECT id, name FROM $table ORDER BY name ASC" );
     wp_send_json_success( $results );
 }
 
 add_action( 'wp_ajax_save_production_log', 'posdash_save_production_log' );
-add_action( 'wp_ajax_nopriv_save_production_log', 'posdash_save_production_log' );
+// H1: nopriv REMOVED - save actions require login
 
 add_action( 'wp_ajax_get_products_by_category', 'posdash_get_products_by_category' );
-add_action( 'wp_ajax_nopriv_get_products_by_category', 'posdash_get_products_by_category' );
+// H1: Removed nopriv - requires login
 function posdash_get_products_by_category() {
+    if ( ! is_user_logged_in() ) {
+        wp_send_json_error( 'Authentication required.', 403 );
+        return;
+    }
     global $wpdb;
     $category = isset( $_GET['category'] ) ? sanitize_text_field( wp_unslash( $_GET['category'] ) ) : '';
     $table = $wpdb->prefix . 'products';
@@ -969,12 +891,19 @@ function posdash_get_products_by_category() {
 }
 
 function posdash_save_production_log() {
+    // H1: Authentication + nonce check for write operations
+    if ( ! is_user_logged_in() ) {
+        wp_send_json_error( 'Authentication required.', 403 );
+        return;
+    }
+    check_ajax_referer( 'posdash_ajax_action', 'nonce' );
     global $wpdb;
     $emp_id = isset( $_POST['employee_id'] ) ? intval( wp_unslash( $_POST['employee_id'] ) ) : 0;
     $prod_id = isset( $_POST['product_id'] ) ? intval( wp_unslash( $_POST['product_id'] ) ) : 0;
     $qty = isset( $_POST['quantity'] ) ? intval( wp_unslash( $_POST['quantity'] ) ) : 0;
     $date = isset( $_POST['produce_date'] ) ? sanitize_text_field( wp_unslash( $_POST['produce_date'] ) ) : '';
-    if ( empty( $date ) ) {
+    // M1: Validate date format Y-m-d
+    if ( empty( $date ) || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) || ! strtotime( $date ) ) {
         $date = current_time( 'Y-m-d' );
     }
     
@@ -1549,3 +1478,480 @@ add_action( 'init', function() {
         update_option( 'posdash_fin_prod_log_fk_updated_v3', true );
     }
 });
+
+/**
+ * POS Dash - User Authentication, Redirects, and Idle Logout (3 Minutes)
+ */
+
+add_action( 'template_redirect', function() {
+    // Determine view name (mimic index.php routing)
+    $view = '';
+    if ( isset( $_GET['view'] ) ) {
+        $view = sanitize_text_field( wp_unslash( $_GET['view'] ) );
+    } else {
+        $request_uri = parse_url( $_SERVER['REQUEST_URI'], PHP_URL_PATH );
+        $request_uri = preg_replace( '#/+#', '/', $request_uri );
+        $request_path = trim( $request_uri, '/' );
+        if ( empty( $request_path ) ) {
+            $view = 'backend/index';
+        } else {
+            $view = $request_path;
+        }
+    }
+    $view = trim( $view, '/' );
+    $view = preg_replace( '/[^a-zA-Z0-9_\-\/]/', '', $view );
+
+    // Check for manual logout action
+    if ( isset( $_GET['action'] ) && $_GET['action'] === 'logout' ) {
+        if ( PHP_VERSION_ID >= 70300 ) {
+            setcookie( 'posdash_last_activity', '', array( 'expires' => time() - 3600, 'path' => COOKIEPATH, 'domain' => COOKIE_DOMAIN, 'secure' => is_ssl(), 'httponly' => true, 'samesite' => 'Strict' ) );
+        } else {
+            setcookie( 'posdash_last_activity', '', time() - 3600, COOKIEPATH, COOKIE_DOMAIN, is_ssl(), true );
+        }
+        wp_logout();
+        $loggedout_reason = ( isset( $_GET['reason'] ) && $_GET['reason'] === 'idle' ) ? 'idle' : 'manual';
+        wp_safe_redirect( add_query_arg( 'loggedout', $loggedout_reason, home_url( '/auth-sign-in' ) ) );
+        exit;
+    }
+
+    $public_views = array( 'auth-sign-in', 'auth-sign-up', 'auth-recoverpw', 'auth-confirm-mail' );
+    $clean_view_name = $view;
+    if ( strpos( $clean_view_name, 'backend/' ) === 0 ) {
+        $clean_view_name = substr( $clean_view_name, 8 );
+    }
+
+    if ( ! is_user_logged_in() ) {
+        // Handle login POST
+        if ( $clean_view_name === 'auth-sign-in' && $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['username'] ) && isset( $_POST['password'] ) ) {
+            $creds = array(
+                'user_login'    => sanitize_text_field( wp_unslash( $_POST['username'] ) ),
+                'user_password' => wp_unslash( $_POST['password'] ), // M4: Added wp_unslash
+                'remember'      => isset( $_POST['remember'] ) ? true : false,
+            );
+
+            $user = wp_signon( $creds, is_ssl() );
+
+            if ( is_wp_error( $user ) ) {
+                global $posdash_login_error;
+                $posdash_login_error = $user->get_error_message();
+            } else {
+                // L3: Hardened cookie
+                if ( PHP_VERSION_ID >= 70300 ) {
+                    setcookie( 'posdash_last_activity', time(), array( 'expires' => time() + 86400 * 30, 'path' => COOKIEPATH, 'domain' => COOKIE_DOMAIN, 'secure' => is_ssl(), 'httponly' => true, 'samesite' => 'Strict' ) );
+                } else {
+                    setcookie( 'posdash_last_activity', time(), time() + 86400 * 30, COOKIEPATH, COOKIE_DOMAIN, is_ssl(), true );
+                }
+                wp_safe_redirect( home_url( '/' ) );
+                exit;
+            }
+        }
+
+        // Handle signup POST
+        if ( $clean_view_name === 'auth-sign-up' && $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['signup_action'] ) ) {
+            $first_name = sanitize_text_field( wp_unslash( $_POST['first_name'] ) );
+            $last_name  = sanitize_text_field( wp_unslash( $_POST['last_name'] ) );
+            $email      = sanitize_email( wp_unslash( $_POST['email'] ) );
+            $password   = wp_unslash( $_POST['password'] ); // M4: Added wp_unslash
+            $confirm_password = wp_unslash( $_POST['confirm_password'] );
+            $invite_code = isset( $_POST['invite_code'] ) ? sanitize_text_field( wp_unslash( $_POST['invite_code'] ) ) : '';
+
+            global $posdash_signup_error, $posdash_signup_success;
+            $valid_invite_code = get_option( 'inventory_invite_token', 'SECRET-2026' ); // default fallback
+
+            if ( empty( $email ) || ! is_email( $email ) ) {
+                $posdash_signup_error = 'Please enter a valid email address.';
+            } elseif ( $invite_code !== $valid_invite_code ) {
+                // H4: Restrict registration to valid invite code
+                $posdash_signup_error = 'Invalid invite code.';
+            } elseif ( empty( $password ) || strlen( $password ) < 8 ) {
+                // L2: Increased min password length to 8
+                $posdash_signup_error = 'Password must be at least 8 characters long.';
+            } elseif ( $password !== $confirm_password ) {
+                $posdash_signup_error = 'Passwords do not match.';
+            } elseif ( email_exists( $email ) ) {
+                $posdash_signup_error = 'This email address is already registered.';
+            } else {
+                $base_username = sanitize_user( current( explode( '@', $email ) ) );
+                $username = $base_username;
+                $i = 1;
+                while ( username_exists( $username ) ) {
+                    $username = $base_username . $i;
+                    $i++;
+                }
+
+                $user_id = wp_create_user( $username, $password, $email );
+                if ( is_wp_error( $user_id ) ) {
+                    $posdash_signup_error = $user_id->get_error_message();
+                } else {
+                    wp_update_user( array(
+                        'ID'         => $user_id,
+                        'first_name' => $first_name,
+                        'last_name'  => $last_name,
+                    ) );
+
+                    // Auto login
+                    $creds = array(
+                        'user_login'    => $username,
+                        'user_password' => $password,
+                        'remember'      => true,
+                    );
+                    $user = wp_signon( $creds, is_ssl() );
+
+                    if ( ! is_wp_error( $user ) ) {
+                        // L3: Hardened cookie
+                        if ( PHP_VERSION_ID >= 70300 ) {
+                            setcookie( 'posdash_last_activity', time(), array( 'expires' => time() + 86400 * 30, 'path' => COOKIEPATH, 'domain' => COOKIE_DOMAIN, 'secure' => is_ssl(), 'httponly' => true, 'samesite' => 'Strict' ) );
+                        } else {
+                            setcookie( 'posdash_last_activity', time(), time() + 86400 * 30, COOKIEPATH, COOKIE_DOMAIN, is_ssl(), true );
+                        }
+                        wp_safe_redirect( home_url( '/' ) );
+                        exit;
+                    } else {
+                        $posdash_signup_success = 'Account created successfully! Please sign in.';
+                    }
+                }
+            }
+        }
+
+        // If guest and accessing non-public view, redirect to login page
+        if ( ! in_array( $clean_view_name, $public_views, true ) ) {
+            wp_safe_redirect( home_url( '/auth-sign-in' ) );
+            exit;
+        }
+    } else {
+        // If logged in and accessing public view, redirect to home page
+        if ( in_array( $clean_view_name, $public_views, true ) ) {
+            wp_safe_redirect( home_url( '/' ) );
+            exit;
+        }
+        
+        // Idle timeout server-side check
+        $now = time();
+        $timeout = 180; // 3 minutes = 180 seconds
+        
+        if ( isset( $_COOKIE['posdash_last_activity'] ) ) {
+            $last_activity = intval( $_COOKIE['posdash_last_activity'] );
+            if ( ( $now - $last_activity ) > $timeout ) {
+                if ( PHP_VERSION_ID >= 70300 ) {
+                    setcookie( 'posdash_last_activity', '', array( 'expires' => time() - 3600, 'path' => COOKIEPATH, 'domain' => COOKIE_DOMAIN, 'secure' => is_ssl(), 'httponly' => true, 'samesite' => 'Strict' ) );
+                } else {
+                    setcookie( 'posdash_last_activity', '', time() - 3600, COOKIEPATH, COOKIE_DOMAIN, is_ssl(), true );
+                }
+                wp_logout();
+                wp_safe_redirect( add_query_arg( 'loggedout', 'idle', home_url( '/auth-sign-in' ) ) );
+                exit;
+            }
+        }
+        
+        // Update activity cookie (L3: hardened)
+        if ( PHP_VERSION_ID >= 70300 ) {
+            setcookie( 'posdash_last_activity', $now, array( 'expires' => $now + 86400 * 30, 'path' => COOKIEPATH, 'domain' => COOKIE_DOMAIN, 'secure' => is_ssl(), 'httponly' => true, 'samesite' => 'Strict' ) );
+        } else {
+            setcookie( 'posdash_last_activity', $now, $now + 86400 * 30, COOKIEPATH, COOKIE_DOMAIN, is_ssl(), true );
+        }
+    }
+} );
+
+// Hook to wp_footer to inject client-side inactivity timer and AJAX nonce
+add_action( 'wp_footer', function() {
+    if ( is_user_logged_in() ) {
+        $logout_url = esc_url( wp_logout_url( add_query_arg( 'reason', 'idle', home_url( '/auth-sign-in' ) ) ) );
+        $ajax_nonce = wp_create_nonce( 'posdash_ajax_action' );
+        ?>
+        <script type="text/javascript">
+        (function() {
+            // Setup global AJAX nonce for authenticated requests
+            if (typeof jQuery !== 'undefined') {
+                jQuery.ajaxSetup({
+                    data: { nonce: "<?php echo esc_js( $ajax_nonce ); ?>" }
+                });
+            }
+
+            var idleTime = 0;
+            var idleLimit = 180; // 3 minutes
+
+            function resetIdleTimer() {
+                idleTime = 0;
+            }
+
+            // Monitor events
+            var events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+            events.forEach(function(name) {
+                document.addEventListener(name, resetIdleTimer, true);
+            });
+
+            // Increment the idle counter every second
+            var idleInterval = setInterval(timerIncrement, 1000);
+
+            function timerIncrement() {
+                idleTime = idleTime + 1;
+                if (idleTime >= idleLimit) {
+                    clearInterval(idleInterval);
+                    // Redirect to logout URL
+                    window.location.href = "<?php echo $logout_url; ?>";
+                }
+            }
+        })();
+        </script>
+        <?php
+    }
+} );
+
+// Disable admin bar for all users on the frontend
+add_filter( 'show_admin_bar', '__return_false' );
+
+/**
+ * Add custom "Manager" user role.
+ */
+function inventory_management_add_manager_role() {
+    if ( ! get_role( 'manager' ) ) {
+        // Clone capabilities of the 'editor' role, or default to some basic ones if editor doesn't exist
+        $editor = get_role( 'editor' );
+        $caps = ! empty( $editor ) ? $editor->capabilities : array(
+            'read' => true,
+            'edit_posts' => true,
+            'publish_posts' => true,
+            'upload_files' => true,
+        );
+        add_role( 'manager', __( 'Manager', 'inventory-management' ), $caps );
+    }
+}
+add_action( 'init', 'inventory_management_add_manager_role' );
+
+/**
+ * --- AJAX Endpoints for Raw Materials ---
+ */
+
+add_action( 'wp_ajax_search_raw_material_products', 'posdash_search_raw_material_products' );
+// H1: Removed nopriv - requires login
+function posdash_search_raw_material_products() {
+    if ( ! is_user_logged_in() ) {
+        wp_send_json_error( 'Authentication required.', 403 );
+        return;
+    }
+    global $wpdb;
+    $term = isset( $_GET['term'] ) ? sanitize_text_field( wp_unslash( $_GET['term'] ) ) : '';
+    $cat  = isset( $_GET['category'] ) ? sanitize_text_field( wp_unslash( $_GET['category'] ) ) : '';
+    
+    $table = $wpdb->prefix . 'products';
+    $cat_query = "";
+    if ( ! empty( $cat ) ) {
+        $cat_query = $wpdb->prepare( " AND category = %s", $cat );
+    }
+    
+    $results = $wpdb->get_results( $wpdb->prepare( "SELECT id, product_name as name, category, cost FROM $table WHERE product_type = 'Raw Material' AND (product_name LIKE %s OR id LIKE %s) $cat_query LIMIT 50", '%' . $wpdb->esc_like( $term ) . '%', '%' . $wpdb->esc_like( $term ) . '%' ) );
+    
+    wp_send_json_success( $results );
+}
+
+add_action( 'wp_ajax_save_raw_material_log', 'posdash_save_raw_material_log' );
+// H1: nopriv REMOVED - save actions require login
+function posdash_save_raw_material_log() {
+    // H1: Authentication + nonce check for write operations
+    if ( ! is_user_logged_in() ) {
+        wp_send_json_error( 'Authentication required.', 403 );
+        return;
+    }
+    check_ajax_referer( 'posdash_ajax_action', 'nonce' );
+    global $wpdb;
+    $prod_id = isset( $_POST['product_id'] ) ? intval( wp_unslash( $_POST['product_id'] ) ) : 0;
+    $qty = isset( $_POST['quantity'] ) ? floatval( wp_unslash( $_POST['quantity'] ) ) : 0.00;
+    $date = isset( $_POST['log_date'] ) ? sanitize_text_field( wp_unslash( $_POST['log_date'] ) ) : '';
+    // M1: Validate date format Y-m-d
+    if ( empty( $date ) || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) || ! strtotime( $date ) ) {
+        $date = current_time( 'Y-m-d' );
+    }
+    
+    if ( $prod_id <= 0 || $qty <= 0 ) {
+        wp_send_json_error( 'Invalid input data.' );
+        return;
+    }
+    
+    $current_user = wp_get_current_user();
+    $username = $current_user->exists() ? $current_user->user_login : 'admin';
+    
+    $wpdb->insert(
+        $wpdb->prefix . 'raw_material',
+        array(
+            'log_date'        => $date,
+            'product_id'      => $prod_id,
+            'quantity'        => $qty,
+            'Created_dt'      => current_time( 'mysql' ),
+            'Last_upd_dt'     => current_time( 'mysql' ),
+            'created_by'      => $username,
+            'Last_updated_by' => $username,
+        )
+    );
+    
+    wp_send_json_success( 'Raw material logged successfully.' );
+}
+
+add_action( 'wp_ajax_get_raw_material_logs', 'posdash_get_raw_material_logs' );
+// H1: Removed nopriv - requires login
+function posdash_get_raw_material_logs() {
+    if ( ! is_user_logged_in() ) {
+        wp_send_json_error( 'Authentication required.', 403 );
+        return;
+    }
+    global $wpdb;
+    $date = isset( $_GET['log_date'] ) ? sanitize_text_field( wp_unslash( $_GET['log_date'] ) ) : '';
+    // M1: Validate date format
+    if ( empty( $date ) || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
+        $date = current_time( 'Y-m-d' );
+    }
+    
+    $raw_table = $wpdb->prefix . 'raw_material';
+    $prod_table = $wpdb->prefix . 'products';
+    
+    $results = $wpdb->get_results( $wpdb->prepare( "
+        SELECT r.id, r.product_id, p.product_name, p.category, r.quantity, r.log_date, r.created_by, r.Created_dt
+        FROM $raw_table r
+        LEFT JOIN $prod_table p ON r.product_id = p.id
+        WHERE r.log_date = %s
+        ORDER BY r.id DESC
+    ", $date ) );
+    
+    wp_send_json_success( $results );
+}
+
+/**
+ * --- ThemeSettings WordPress Admin Option Panel ---
+ */
+
+function inventory_management_add_settings_page() {
+    add_theme_page(
+        __( 'Theme Settings', 'inventory-management' ),
+        __( 'ThemeSettings', 'inventory-management' ),
+        'manage_options',
+        'theme-settings',
+        'inventory_management_render_settings_page'
+    );
+}
+add_action( 'admin_menu', 'inventory_management_add_settings_page' );
+
+function inventory_management_register_settings() {
+    register_setting( 'inventory_theme_settings_group', 'inventory_brand_name' );
+    register_setting( 'inventory_theme_settings_group', 'inventory_brand_logo' );
+    register_setting( 'inventory_theme_settings_group', 'inventory_owner_email' );
+    register_setting( 'inventory_theme_settings_group', 'inventory_work_logged_email_subject' );
+    register_setting( 'inventory_theme_settings_group', 'inventory_work_logged_email_body' );
+}
+add_action( 'admin_init', 'inventory_management_register_settings' );
+
+function inventory_management_settings_assets( $hook ) {
+    if ( 'appearance_page_theme-settings' !== $hook ) {
+        return;
+    }
+    wp_enqueue_media();
+}
+add_action( 'admin_enqueue_scripts', 'inventory_management_settings_assets' );
+
+function inventory_management_render_settings_page() {
+    // M5: Enforce strict allowlist for the 'tab' parameter
+    $allowed_tabs = array( 'brand_details', 'email_templates' );
+    $active_tab = isset( $_GET['tab'] ) && in_array( $_GET['tab'], $allowed_tabs, true ) ? $_GET['tab'] : 'brand_details';
+    ?>
+    <div class="wrap">
+        <h1><?php esc_html_e( 'Theme Settings', 'inventory-management' ); ?></h1>
+        <?php settings_errors(); ?>
+
+        <h2 class="nav-tab-wrapper">
+            <a href="?page=theme-settings&tab=brand_details" class="nav-tab <?php echo $active_tab === 'brand_details' ? 'nav-tab-active' : ''; ?>">
+                <?php esc_html_e( 'Brand details', 'inventory-management' ); ?>
+            </a>
+            <a href="?page=theme-settings&tab=email_templates" class="nav-tab <?php echo $active_tab === 'email_templates' ? 'nav-tab-active' : ''; ?>">
+                <?php esc_html_e( 'Email templates', 'inventory-management' ); ?>
+            </a>
+        </h2>
+
+        <form method="post" action="options.php" style="margin-top: 20px;">
+            <?php
+            settings_fields( 'inventory_theme_settings_group' );
+            
+            if ( 'brand_details' === $active_tab ) {
+                ?>
+                <table class="form-table">
+                    <tr valign="top">
+                        <th scope="row"><?php esc_html_e( 'Brand Name', 'inventory-management' ); ?></th>
+                        <td>
+                            <input type="text" name="inventory_brand_name" value="<?php echo esc_attr( get_option( 'inventory_brand_name' ) ); ?>" class="regular-text" />
+                        </td>
+                    </tr>
+                    <tr valign="top">
+                        <th scope="row"><?php esc_html_e( 'Brand Logo', 'inventory-management' ); ?></th>
+                        <td>
+                            <input type="text" id="inventory_brand_logo" name="inventory_brand_logo" value="<?php echo esc_url( get_option( 'inventory_brand_logo' ) ); ?>" class="regular-text" />
+                            <input type="button" id="upload_logo_button" class="button" value="<?php esc_attr_e( 'Upload Logo', 'inventory-management' ); ?>" />
+                            <p class="description"><?php esc_html_e( 'Choose an image from the Media Library or upload a new one.', 'inventory-management' ); ?></p>
+                            <div style="margin-top: 10px;">
+                                <img id="logo_preview" src="<?php echo esc_url( get_option( 'inventory_brand_logo' ) ); ?>" style="max-height: 80px; display: <?php echo get_option( 'inventory_brand_logo' ) ? 'block' : 'none'; ?>;" />
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+                <?php
+            } elseif ( 'email_templates' === $active_tab ) {
+                ?>
+                <h3><?php esc_html_e( 'Work Logged Email Template', 'inventory-management' ); ?></h3>
+                <p class="description"><?php esc_html_e( 'Configure the email notification template sent to the owner daily when work is logged.', 'inventory-management' ); ?></p>
+                <table class="form-table">
+                    <tr valign="top">
+                        <th scope="row"><?php esc_html_e( 'Owner/Recipient Email', 'inventory-management' ); ?></th>
+                        <td>
+                            <input type="email" name="inventory_owner_email" value="<?php echo esc_attr( get_option( 'inventory_owner_email' ) ); ?>" class="regular-text" placeholder="owner@example.com" />
+                            <p class="description"><?php esc_html_e( 'Email address where notifications will be sent.', 'inventory-management' ); ?></p>
+                        </td>
+                    </tr>
+                    <tr valign="top">
+                        <th scope="row"><?php esc_html_e( 'Email Subject', 'inventory-management' ); ?></th>
+                        <td>
+                            <input type="text" name="inventory_work_logged_email_subject" value="<?php echo esc_attr( get_option( 'inventory_work_logged_email_subject' ) ); ?>" class="regular-text" style="width: 100%; max-width: 600px;" />
+                        </td>
+                    </tr>
+                    <tr valign="top">
+                        <th scope="row"><?php esc_html_e( 'Email Body', 'inventory-management' ); ?></th>
+                        <td>
+                            <?php
+                            $content = get_option( 'inventory_work_logged_email_body' );
+                            wp_editor( $content, 'inventory_work_logged_email_body', array(
+                                'textarea_name' => 'inventory_work_logged_email_body',
+                                'media_buttons' => false,
+                                'textarea_rows' => 12,
+                                'teeny'         => true,
+                            ) );
+                            ?>
+                        </td>
+                    </tr>
+                </table>
+                <?php
+            }
+
+            submit_button();
+            ?>
+        </form>
+    </div>
+
+    <!-- Media Uploader Script -->
+    <script type="text/javascript">
+    jQuery(document).ready(function($){
+        $('#upload_logo_button').click(function(e) {
+            e.preventDefault();
+            var image = wp.media({ 
+                title: 'Upload Brand Logo',
+                multiple: false
+            }).open()
+            .on('select', function(e){
+                var uploaded_image = image.state().get('selection').first();
+                var image_url = uploaded_image.toJSON().url;
+                $('#inventory_brand_logo').val(image_url);
+                $('#logo_preview').attr('src', image_url).show();
+            });
+        });
+    });
+    </script>
+    <?php
+}
+
+
+
+

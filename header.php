@@ -4,10 +4,20 @@
  *
  * @package Inventory_Management
  */
-
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 $theme_uri = get_template_directory_uri();
 $home_url  = home_url( '/' );
 
+$brand_name = get_option( 'inventory_brand_name' );
+if ( empty( $brand_name ) ) {
+    $brand_name = 'POSDash';
+}
+$brand_logo = get_option( 'inventory_brand_logo' );
+if ( empty( $brand_logo ) ) {
+    $brand_logo = $theme_uri . '/assets/images/logo.png';
+}
 ?>
 <!doctype html>
 <html <?php language_attributes(); ?>>
@@ -24,6 +34,7 @@ $home_url  = home_url( '/' );
     <?php wp_head(); ?>
     <script>
         window.posdashAjaxUrl = "<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>";
+        window.posdashNonce = "<?php echo esc_js( wp_create_nonce( 'posdash_ajax_action' ) ); ?>";
     </script>
 </head>
 <body <?php body_class(); ?>>
@@ -39,7 +50,7 @@ $home_url  = home_url( '/' );
       <div class="iq-sidebar  sidebar-default ">
           <div class="iq-sidebar-logo d-flex align-items-center justify-content-between">
               <a href="<?php echo esc_url( $home_url ); ?>" class="header-logo">
-                  <img src="<?php echo esc_url( $theme_uri ); ?>/assets/images/logo.png" class="img-fluid rounded-normal light-logo" alt="logo"><h5 class="logo-title light-logo ml-3">POSDash</h5>
+                  <img src="<?php echo esc_url( $brand_logo ); ?>" class="img-fluid rounded-normal light-logo" alt="logo"><h5 class="logo-title light-logo ml-3"><?php echo esc_html( $brand_name ); ?></h5>
               </a>
               <div class="iq-menu-bt-sidebar ml-0">
                   <i class="las la-bars wrapper-menu"></i>
@@ -65,7 +76,7 @@ $home_url  = home_url( '/' );
                                   <line x1="16" y1="17" x2="8" y2="17"></line>
                                   <polyline points="10 9 9 9 8 9"></polyline>
                               </svg>
-                              <span class="ml-4">Production data entry</span>
+                              <span class="ml-4">Data Entry</span>
                               <svg class="svg-icon iq-arrow-right arrow-active" width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                   <polyline points="10 15 15 20 20 15"></polyline><path d="M4 4h7a4 4 0 0 1 4 4v12"></path>
                               </svg>
@@ -73,12 +84,12 @@ $home_url  = home_url( '/' );
                           <ul id="production" class="iq-submenu collapse" data-parent="#iq-sidebar-toggle">
                               <li class="">
                                   <a href="<?php echo esc_url( $home_url . 'list-production-log' ); ?>">
-                                      <i class="las la-minus"></i><span>List work</span>
+                                      <i class="las la-minus"></i><span>Work</span>
                                   </a>
                               </li>
                               <li class="">
-                                  <a href="<?php echo esc_url( $home_url . 'add-production-log' ); ?>">
-                                      <i class="las la-minus"></i><span>Add work</span>
+                                  <a href="<?php echo esc_url( $home_url . 'list-raw-material' ); ?>">
+                                      <i class="las la-minus"></i><span>Raw Material</span>
                                   </a>
                               </li>
                           </ul>
@@ -220,11 +231,17 @@ $home_url  = home_url( '/' );
                   <div class="iq-navbar-logo d-flex align-items-center justify-content-between">
                       <i class="ri-menu-line wrapper-menu"></i>
                       <a href="<?php echo esc_url( $home_url ); ?>" class="header-logo">
-                          <img src="<?php echo esc_url( $theme_uri ); ?>/assets/images/logo.png" class="img-fluid rounded-normal" alt="logo">
-                          <h5 class="logo-title ml-3">POSDash</h5>
+                          <img src="<?php echo esc_url( $brand_logo ); ?>" class="img-fluid rounded-normal" alt="logo">
+                          <h5 class="logo-title ml-3"><?php echo esc_html( $brand_name ); ?></h5>
       
                       </a>
                   </div>
+
+                  <div class="header-brand-center">
+                       <h4 class="mb-0 text-uppercase">
+                           <?php echo esc_html( $brand_name ); ?>
+                       </h4>
+                   </div>
 
                   <div class="d-flex align-items-center ml-auto">
                       <button class="navbar-toggler" type="button" data-toggle="collapse"
@@ -236,9 +253,14 @@ $home_url  = home_url( '/' );
                           <ul class="navbar-nav ml-auto navbar-list align-items-center">
 
                               <li class="nav-item nav-icon dropdown caption-content">
+                                  <?php
+                                  $current_user = wp_get_current_user();
+                                  $avatar_url   = get_avatar_url( $current_user->ID );
+                                  $registered_date = date_i18n( 'j F, Y', strtotime( $current_user->user_registered ) );
+                                  ?>
                                   <a href="#" class="search-toggle dropdown-toggle" id="dropdownMenuButton4"
                                       data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                      <img src="<?php echo esc_url( $theme_uri ); ?>/assets/images/user/1.png" class="img-fluid rounded" alt="user">
+                                      <img src="<?php echo esc_url( $avatar_url ); ?>" class="img-fluid rounded" alt="user">
                                   </a>
                                   <div class="iq-sub-dropdown dropdown-menu" aria-labelledby="dropdownMenuButton">
                                       <div class="card shadow-none m-0">
@@ -246,15 +268,16 @@ $home_url  = home_url( '/' );
                                               <div class="media-body profile-detail text-center">
                                                   <img src="<?php echo esc_url( $theme_uri ); ?>/assets/images/page-img/profile-bg.jpg" alt="profile-bg"
                                                       class="rounded-top img-fluid mb-4">
-                                                  <img src="<?php echo esc_url( $theme_uri ); ?>/assets/images/user/1.png" alt="profile-img"
+                                                  <img src="<?php echo esc_url( $avatar_url ); ?>" alt="profile-img"
                                                       class="rounded profile-img img-fluid avatar-70">
                                               </div>
                                               <div class="p-3">
-                                                  <h5 class="mb-1">JoanDuo@property.com</h5>
-                                                  <p class="mb-0">Since 10 march, 2020</p>
+                                                  <h5 class="mb-1"><?php echo esc_html( $current_user->display_name ); ?></h5>
+                                                  <p class="mb-0"><?php echo esc_html( $current_user->user_email ); ?></p>
+                                                  <p class="mb-0 text-muted" style="font-size: 12px; margin-top: 5px;">Since <?php echo esc_html( $registered_date ); ?></p>
                                                   <div class="d-flex align-items-center justify-content-center mt-3">
-                                                      <a href="#" class="btn border mr-2">Profile</a>
-                                                      <a href="#" class="btn border">Sign Out</a>
+                                                      <a href="<?php echo esc_url( home_url( '/user-profile' ) ); ?>" class="btn border mr-2">Profile</a>
+                                                      <a href="<?php echo esc_url( wp_logout_url( home_url( '/auth-sign-in' ) ) ); ?>" class="btn border">Sign Out</a>
                                                   </div>
                                               </div>
                                           </div>

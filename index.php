@@ -63,9 +63,9 @@ if ( isset( $_GET['view'] ) ) {
 	}
 }
 
-// Clean the view parameter to prevent path traversal
+// Clean the view parameter to prevent path traversal using strict regex whitelist
 $view = trim( $view, '/' );
-$view = str_replace( array( '..', '\\' ), '', $view ); // Safety first
+$view = preg_replace( '/[^a-zA-Z0-9_\-\/]/', '', $view ); // Safety first (only allow word characters, hyphens, and slashes)
 
 // Override 404 if we are dynamically loading a valid template
 if ( ! empty( $view ) && 'backend/index' !== $view ) {
@@ -253,76 +253,304 @@ $content = str_ireplace( 'overview of user list', 'overview of employee list', $
 if ( strpos( $view, 'index' ) !== false ) {
     global $wpdb;
 
-    // A. Fetch Total Products
+    // 1. Fetch Stats Values
     $total_products = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}products" );
+    $total_users = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}employee WHERE status = 'Active'" );
+    $today_date = current_time( 'Y-m-d' );
+    
+    $logs_today = (int) $wpdb->get_var( $wpdb->prepare( "
+        SELECT 
+            (SELECT COUNT(*) FROM {$wpdb->prefix}fin_prod_log WHERE DATE(Created_dt) = %s) + 
+            (SELECT COUNT(*) FROM {$wpdb->prefix}raw_material WHERE DATE(Created_dt) = %s)
+    ", $today_date, $today_date ) );
+    
+    $labour_today = (float) $wpdb->get_var( $wpdb->prepare( "
+        SELECT SUM(total_labor_payout) FROM {$wpdb->prefix}fin_prod_log WHERE DATE(Created_dt) = %s
+    ", $today_date ) );
 
-    // B. Fetch Total Labour Cost
-    $total_labor = (float) $wpdb->get_var( "SELECT SUM(total_labor_payout) FROM {$wpdb->prefix}fin_prod_log" );
-
-    // C. Fetch Top Categories by production count
-    $category_counts = $wpdb->get_results( "
-        SELECT p.category, SUM(l.quantity_produced) AS total_qty
-        FROM {$wpdb->prefix}fin_prod_log l
-        INNER JOIN {$wpdb->prefix}products p ON l.product_id = p.id
-        GROUP BY p.category
-        ORDER BY total_qty DESC
-        LIMIT 4
-    " );
-
-    // Fetch Category images for mapping
-    $categories_info = $wpdb->get_results( "SELECT name, image FROM {$wpdb->prefix}Prod_Category" );
-    $cat_image_map = array();
-    if ( ! empty( $categories_info ) ) {
-        foreach ( $categories_info as $c_info ) {
-            $cat_image_map[ strtolower( trim( $c_info->name ) ) ] = $c_info->image;
-        }
-    }
-
-    $bg_classes = array( 'bg-warning-light', 'bg-danger-light', 'bg-info-light', 'bg-success-light' );
-    $categories_html = '';
-    if ( ! empty( $category_counts ) ) {
-        foreach ( $category_counts as $idx => $cat ) {
-            $cat_name = trim( $cat->category );
-            $cat_key  = strtolower( $cat_name );
-            $cat_image = '';
-            if ( isset( $cat_image_map[ $cat_key ] ) && ! empty( $cat_image_map[ $cat_key ] ) ) {
-                $img_path = $cat_image_map[ $cat_key ];
-                if ( strpos( $img_path, 'assets/' ) === 0 ) {
-                    $cat_image = get_template_directory_uri() . '/' . $img_path;
-                } else {
-                    $cat_image = $img_path;
-                }
-            } else {
-                $fallback_index = ( $idx % 3 ) + 1;
-                $cat_image = get_template_directory_uri() . '/assets/images/product/0' . $fallback_index . '.png';
-            }
-            $bg_class = $bg_classes[ $idx % 4 ];
-
-            $categories_html .= '
-            <li class="col-lg-3">
-                <div class="card card-block card-stretch card-height mb-0">
-                    <div class="card-body">
-                        <div class="' . esc_attr( $bg_class ) . ' rounded">
-                            <img src="' . esc_url( $cat_image ) . '" class="style-img img-fluid m-auto p-3" alt="image">
+    // 2. Generate Stats Row HTML
+    $stats_html = '
+    <div class="row mt-4">
+        <!-- Stat 1: Total Products -->
+        <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+            <div class="card card-block card-stretch card-height border-none shadow-sm stat-card-products" style="border-radius: 16px; background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%) !important; transition: all 0.3s ease;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <p class="mb-1 small text-uppercase font-weight-bold" style="color: rgba(255,255,255,0.85) !important; letter-spacing: 0.5px;">Total Products</p>
+                            <h3 class="mb-0 font-weight-bold" style="color: #ffffff !important;">' . esc_html( $total_products ) . '</h3>
                         </div>
-                        <div class="style-text text-left mt-3">
-                            <h5 class="mb-1">' . esc_html( $cat_name ) . '</h5>
-                            <p class="mb-0">' . esc_html( $cat->total_qty ) . ' Item</p>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; background: rgba(255, 255, 255, 0.2) !important;">
+                            <i class="las la-boxes" style="font-size: 24px; color: #ffffff !important;"></i>
                         </div>
                     </div>
                 </div>
-            </li>';
+            </div>
+        </div>
+        
+        <!-- Stat 2: Active Users -->
+        <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+            <div class="card card-block card-stretch card-height border-none shadow-sm stat-card-staff" style="border-radius: 16px; background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important; transition: all 0.3s ease;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <p class="mb-1 small text-uppercase font-weight-bold" style="color: rgba(255,255,255,0.85) !important; letter-spacing: 0.5px;">Active Staff</p>
+                            <h3 class="mb-0 font-weight-bold" style="color: #ffffff !important;">' . esc_html( $total_users ) . '</h3>
+                        </div>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; background: rgba(255, 255, 255, 0.2) !important;">
+                            <i class="las la-users-cog" style="font-size: 24px; color: #ffffff !important;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stat 3: Logs Today -->
+        <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+            <div class="card card-block card-stretch card-height border-none shadow-sm stat-card-logs" style="border-radius: 16px; background: linear-gradient(135deg, #ea580c 0%, #f59e0b 100%) !important; transition: all 0.3s ease;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <p class="mb-1 small text-uppercase font-weight-bold" style="color: rgba(255,255,255,0.85) !important; letter-spacing: 0.5px;">Logs Today</p>
+                            <h3 class="mb-0 font-weight-bold" style="color: #ffffff !important;">' . esc_html( $logs_today ) . '</h3>
+                        </div>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; background: rgba(255, 255, 255, 0.2) !important;">
+                            <i class="las la-clipboard-list" style="font-size: 24px; color: #ffffff !important;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stat 4: Today\'s Labour Payout -->
+        <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+            <div class="card card-block card-stretch card-height border-none shadow-sm stat-card-payout" style="border-radius: 16px; background: linear-gradient(135deg, #db2777 0%, #9333ea 100%) !important; transition: all 0.3s ease;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <p class="mb-1 small text-uppercase font-weight-bold" style="color: rgba(255,255,255,0.85) !important; letter-spacing: 0.5px;">Today\'s Payout</p>
+                            <h3 class="mb-0 font-weight-bold" style="color: #ffffff !important;">&#8377; ' . number_format( $labour_today, 2 ) . '</h3>
+                        </div>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; background: rgba(255, 255, 255, 0.2) !important;">
+                            <i class="las la-rupee-sign" style="font-size: 24px; color: #ffffff !important;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>';
+
+    // 3. Fetch Activity Logs
+    $recent_work = $wpdb->get_results( $wpdb->prepare( "
+        SELECT 'work' AS log_type, l.Created_dt, l.quantity_produced AS qty, e.name AS emp_name, p.product_name AS prod_name, l.total_labor_payout AS cost
+        FROM {$wpdb->prefix}fin_prod_log l
+        LEFT JOIN {$wpdb->prefix}employee e ON l.employee_id = e.id
+        LEFT JOIN {$wpdb->prefix}products p ON l.product_id = p.id
+        WHERE DATE(l.Created_dt) = %s
+        ORDER BY l.id DESC
+        LIMIT 5
+    ", $today_date ) );
+
+    $recent_raw = $wpdb->get_results( $wpdb->prepare( "
+        SELECT 'raw' AS log_type, r.Created_dt, r.quantity AS qty, r.created_by AS emp_name, p.product_name AS prod_name, 0.00 AS cost
+        FROM {$wpdb->prefix}raw_material r
+        LEFT JOIN {$wpdb->prefix}products p ON r.product_id = p.id
+        WHERE DATE(r.Created_dt) = %s
+        ORDER BY r.id DESC
+        LIMIT 5
+    ", $today_date ) );
+
+    $recent_logs = array_merge( $recent_work, $recent_raw );
+    usort( $recent_logs, function( $a, $b ) {
+        return strcmp( $b->Created_dt, $a->Created_dt );
+    } );
+    $recent_logs = array_slice( $recent_logs, 0, 5 );
+
+    // 4. Generate Activity Feed HTML
+    $feed_html = '';
+    if ( ! empty( $recent_logs ) ) {
+        foreach ( $recent_logs as $log ) {
+            $time_str = date( 'h:i A', strtotime( $log->Created_dt ) );
+            $staff_name = ! empty( $log->emp_name ) ? esc_html( $log->emp_name ) : 'admin';
+            
+            if ( 'work' === $log->log_type ) {
+                $type_badge = '<span class="badge bg-success-light text-success py-1 px-2 font-weight-bold" style="border-radius:4px;">Finished Goods</span>';
+                $payout_str = '&#8377; ' . number_format( $log->cost, 2 );
+            } else {
+                $type_badge = '<span class="badge bg-warning-light text-warning py-1 px-2 font-weight-bold" style="border-radius:4px;">Raw Material</span>';
+                $payout_str = '-';
+            }
+
+            $feed_html .= '
+            <tr>
+                <td style="padding: 12px 20px !important; font-weight: 500;">' . esc_html( $time_str ) . '</td>
+                <td style="padding: 12px 20px !important;">' . esc_html( $staff_name ) . '</td>
+                <td style="padding: 12px 20px !important;">' . $type_badge . '</td>
+                <td style="padding: 12px 20px !important;">' . esc_html( $log->prod_name ) . '</td>
+                <td class="text-center font-weight-bold" style="padding: 12px 20px !important;">' . esc_html( $log->qty ) . '</td>
+                <td class="text-right font-weight-bold text-dark" style="padding: 12px 20px !important;">' . $payout_str . '</td>
+            </tr>';
         }
     } else {
-        $categories_html = '<li class="col-12 text-center text-muted p-4">No produced items found.</li>';
+        $feed_html = '
+        <tr>
+            <td colspan="6" class="text-center text-muted p-4">
+                <i class="las la-info-circle mr-1" style="font-size: 16px;"></i> No activity logged yet today.
+            </td>
+        </tr>';
     }
 
-    $content = str_replace( '<!-- DASHBOARD_TOTAL_PRODUCTS -->', esc_html( $total_products ), $content );
-    $content = str_replace( '<!-- DASHBOARD_TOTAL_LABOUR_COST -->', '&#8377; ' . number_format( $total_labor, 2 ), $content );
-    $content = str_replace( '<!-- DASHBOARD_TOP_CATEGORIES -->', $categories_html, $content );
-    $content = str_replace( '<!-- DASHBOARD_INCOME_PRODUCTS -->', esc_html( $total_products ), $content );
-    $content = str_replace( '<!-- DASHBOARD_EXPENSE_LABOUR_COST -->', '&#8377; ' . number_format( $total_labor, 2 ), $content );
+    // 4.5 Extra Dashboard Widgets
+    $total_suppliers = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}supplier" );
+    $total_categories = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}prod_category" );
+    $total_customers = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}customers" );
+    $all_time_payout = (float) $wpdb->get_var( "SELECT SUM(total_labor_payout) FROM {$wpdb->prefix}fin_prod_log" );
+
+    $extra_widgets_html = '
+    <div class="row mt-4">
+        <div class="col-lg-12 mb-3">
+            <h5 class="font-weight-bold">System Overview</h5>
+        </div>
+        
+        <!-- Widget 1 -->
+        <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+            <div class="card card-block card-stretch card-height border-none shadow-sm" style="border-radius: 12px; border-left: 5px solid #ec4899; background: #fff;">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <p class="mb-1 text-muted font-weight-bold text-uppercase" style="font-size: 11px;">Total Suppliers</p>
+                            <h3 class="mb-0 font-weight-bold text-dark">' . esc_html( $total_suppliers ) . '</h3>
+                        </div>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center bg-pink-light text-pink" style="width: 50px; height: 50px; background: #fdf2f8; color: #ec4899;">
+                            <i class="las la-truck" style="font-size: 26px;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Widget 2 -->
+        <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+            <div class="card card-block card-stretch card-height border-none shadow-sm" style="border-radius: 12px; border-left: 5px solid #14b8a6; background: #fff;">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <p class="mb-1 text-muted font-weight-bold text-uppercase" style="font-size: 11px;">Total Categories</p>
+                            <h3 class="mb-0 font-weight-bold text-dark">' . esc_html( $total_categories ) . '</h3>
+                        </div>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center bg-teal-light text-teal" style="width: 50px; height: 50px; background: #f0fdfa; color: #14b8a6;">
+                            <i class="las la-tags" style="font-size: 26px;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Widget 3 -->
+        <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+            <div class="card card-block card-stretch card-height border-none shadow-sm" style="border-radius: 12px; border-left: 5px solid #f59e0b; background: #fff;">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <p class="mb-1 text-muted font-weight-bold text-uppercase" style="font-size: 11px;">Total Customers</p>
+                            <h3 class="mb-0 font-weight-bold text-dark">' . esc_html( $total_customers ) . '</h3>
+                        </div>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center bg-orange-light text-orange" style="width: 50px; height: 50px; background: #fffbeb; color: #f59e0b;">
+                            <i class="las la-user-tie" style="font-size: 26px;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Widget 4 -->
+        <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+            <div class="card card-block card-stretch card-height border-none shadow-sm" style="border-radius: 12px; border-left: 5px solid #8b5cf6; background: #fff;">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <p class="mb-1 text-muted font-weight-bold text-uppercase" style="font-size: 11px;">All-Time Payout</p>
+                            <h3 class="mb-0 font-weight-bold text-dark">&#8377; ' . number_format( $all_time_payout, 2 ) . '</h3>
+                        </div>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center bg-purple-light text-purple" style="width: 50px; height: 50px; background: #f5f3ff; color: #8b5cf6;">
+                            <i class="las la-wallet" style="font-size: 26px;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>';
+
+    // 5. Replace placeholders
+    $content = str_replace( '<!-- DASHBOARD_STATS_ROW -->', $stats_html, $content );
+    $content = str_replace( '<!-- DASHBOARD_ACTIVITY_FEED -->', $feed_html, $content );
+    $content = str_replace( '<!-- DASHBOARD_EXTRA_WIDGETS -->', $extra_widgets_html, $content );
+
+    // Dynamic greeting/salutation for dashboard index
+    $current_user = wp_get_current_user();
+    $content = str_replace( 'Hi Graham', 'Hi ' . esc_html( $current_user->display_name ), $content );
 }
+
+// Render Dynamic User Profile Details
+if ( strpos( $view, 'user-profile' ) !== false ) {
+    $current_user = wp_get_current_user();
+    $avatar_url   = get_avatar_url( $current_user->ID );
+    $user_roles   = $current_user->roles;
+    $role_name    = ! empty( $user_roles ) ? ucfirst( $user_roles[0] ) : 'Subscriber';
+
+    // Fetch all user properties from the database
+    $user_login   = $current_user->user_login;
+    $display_name = $current_user->display_name;
+    $first_name   = get_user_meta( $current_user->ID, 'first_name', true );
+    $last_name    = get_user_meta( $current_user->ID, 'last_name', true );
+    $nickname     = get_user_meta( $current_user->ID, 'nickname', true );
+    $user_email   = $current_user->user_email;
+    $user_url     = $current_user->user_url;
+    $registered   = date_i18n( get_option( 'date_format' ), strtotime( $current_user->user_registered ) );
+    $description  = get_user_meta( $current_user->ID, 'description', true );
+
+    // Handle success or error alert messages
+    $alert_html = '';
+    if ( isset( $_GET['success'] ) && $_GET['success'] === 'profile_updated' ) {
+        $alert_html = '
+        <div class="col-lg-12 mb-3">
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <div class="iq-alert-text">Profile updated successfully.</div>
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        </div>';
+    } elseif ( isset( $_GET['error'] ) ) {
+        $error_msg = sanitize_text_field( wp_unslash( $_GET['error'] ) );
+        $alert_html = '
+        <div class="col-lg-12 mb-3">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <div class="iq-alert-text">Error: ' . esc_html( $error_msg ) . '</div>
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        </div>';
+    }
+    $content = str_replace( '<!-- PROFILE_ALERT -->', $alert_html, $content );
+
+    // Replace the placeholders in content
+    $content = str_replace( '<!-- USER_AVATAR -->', esc_url( $avatar_url ), $content );
+    $content = str_replace( '<!-- DISPLAY_NAME -->', esc_html( $display_name ), $content );
+    $content = str_replace( '<!-- USER_ROLE -->', esc_html( $role_name ), $content );
+    $content = str_replace( '<!-- USER_DESCRIPTION_SHORT -->', esc_html( wp_trim_words( $description, 15, '...' ) ), $content );
+    $content = str_replace( '<!-- USER_DESCRIPTION -->', esc_html( $description ), $content );
+
+    $content = str_replace( '<!-- USER_LOGIN -->', esc_html( $user_login ), $content );
+    $content = str_replace( '<!-- FIRST_NAME -->', esc_html( $first_name ), $content );
+    $content = str_replace( '<!-- LAST_NAME -->', esc_html( $last_name ), $content );
+    $content = str_replace( '<!-- NICKNAME -->', esc_html( $nickname ), $content );
+    $content = str_replace( '<!-- USER_EMAIL -->', esc_html( $user_email ), $content );
+    $content = str_replace( '<!-- USER_URL -->', esc_html( $user_url ), $content );
+    $content = str_replace( '<!-- USER_REGISTERED -->', esc_html( $registered ), $content );
+}
+
 
 // Render Dynamic Real-Time Products from wp_products
 if ( strpos( $view, 'list-product' ) !== false ) {
@@ -413,10 +641,10 @@ $content = preg_replace(
     $content
 );
 
-// Render Dynamic Real-Time Categories from wp_Prod_Category
+// Render Dynamic Real-Time Categories from wp_prod_category
 if ( strpos( $view, 'list-category' ) !== false ) {
     global $wpdb;
-    $categories = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}Prod_Category ORDER BY id DESC" );
+    $categories = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}prod_category ORDER BY id DESC" );
     $tbody = '<tbody class="ligth-body">';
     if ( ! empty( $categories ) ) {
         foreach ( $categories as $index => $cat ) {
@@ -484,6 +712,7 @@ if ( strpos( $view, 'list-customers' ) !== false ) {
             $cb_id = 'checkbox' . ( $index + 2 );
             $tbody .= '<tr>';
             $tbody .= '<td><div class="checkbox d-inline-block"><input type="checkbox" class="checkbox-input" id="' . esc_attr( $cb_id ) . '"><label for="' . esc_attr( $cb_id ) . '" class="mb-0"></label></div></td>';
+            $tbody .= '<td>' . esc_html( isset( $cust->company_name ) ? $cust->company_name : '' ) . '</td>';
             $tbody .= '<td>' . esc_html( $cust->name ) . '</td>';
             $tbody .= '<td>' . esc_html( $cust->email ) . '</td>';
             $tbody .= '<td>' . esc_html( $cust->phone_number ) . '</td>';
@@ -501,7 +730,7 @@ if ( strpos( $view, 'list-customers' ) !== false ) {
             $tbody .= '</tr>';
         }
     } else {
-        $tbody .= '<tr><td colspan="9" class="text-center">No customers found.</td></tr>';
+        $tbody .= '<tr><td colspan="10" class="text-center">No customers found.</td></tr>';
     }
     $tbody .= '</tbody>';
     $content = preg_replace_callback( '/<tbody class="ligth-body">.*?<\/tbody>/s', function() use ($tbody) { return $tbody; }, $content );
@@ -535,6 +764,43 @@ if ( strpos( $view, 'list-suppliers' ) !== false ) {
         }
     } else {
         $tbody .= '<tr><td colspan="9" class="text-center">No suppliers found.</td></tr>';
+    }
+    $tbody .= '</tbody>';
+    $content = preg_replace_callback( '/<tbody class="ligth-body">.*?<\/tbody>/s', function() use ($tbody) { return $tbody; }, $content );
+}
+
+// Render Dynamic Real-Time Raw Material Logs from wp_raw_material
+if ( strpos( $view, 'list-raw-material' ) !== false ) {
+    global $wpdb;
+    $raw_table = $wpdb->prefix . 'raw_material';
+    $prod_table = $wpdb->prefix . 'products';
+
+    $logs = $wpdb->get_results( "
+        SELECT r.id, r.product_id, p.product_name, p.category, r.quantity, r.log_date, r.created_by, r.Created_dt
+        FROM $raw_table r
+        LEFT JOIN $prod_table p ON r.product_id = p.id
+        ORDER BY r.log_date DESC, r.id DESC
+    " );
+
+    $tbody = '<tbody class="ligth-body">';
+    if ( ! empty( $logs ) ) {
+        foreach ( $logs as $index => $log ) {
+            $cb_id = 'checkbox' . ( $index + 2 );
+            $log_date = ! empty( $log->log_date ) ? date( 'M d, Y', strtotime( $log->log_date ) ) : 'N/A';
+            
+            $tbody .= '<tr>';
+            $tbody .= '<td><div class="checkbox d-inline-block"><input type="checkbox" class="checkbox-input" id="' . esc_attr( $cb_id ) . '"><label for="' . esc_attr( $cb_id ) . '" class="mb-0"></label></div></td>';
+            $tbody .= '<td class="text-muted" style="font-size:12px;">#' . esc_html( $log->id ) . '</td>';
+            $tbody .= '<td>' . esc_html( $log_date ) . '</td>';
+            $tbody .= '<td>' . esc_html( $log->category ) . '</td>';
+            $tbody .= '<td>' . esc_html( $log->product_name ) . '</td>';
+            $tbody .= '<td>' . esc_html( $log->quantity ) . '</td>';
+            $tbody .= '<td>' . esc_html( $log->created_by ) . '</td>';
+            $tbody .= '<td>' . esc_html( date( 'M d, Y h:i A', strtotime( $log->Created_dt ) ) ) . '</td>';
+            $tbody .= '</tr>';
+        }
+    } else {
+        $tbody .= '<tr><td colspan="8" class="text-center">No raw material logs found.</td></tr>';
     }
     $tbody .= '</tbody>';
     $content = preg_replace_callback( '/<tbody class="ligth-body">.*?<\/tbody>/s', function() use ($tbody) { return $tbody; }, $content );
@@ -658,7 +924,7 @@ if ( strpos( $view, 'report-finished-product' ) !== false ) {
     $log_table  = $wpdb->prefix . 'fin_prod_log';
     $emp_table  = $wpdb->prefix . 'employee';
     $prod_table = $wpdb->prefix . 'products';
-    $cat_table  = $wpdb->prefix . 'Prod_Category';
+    $cat_table  = $wpdb->prefix . 'prod_category';
 
     $logs = $wpdb->get_results( "
         SELECT l.id, l.employee_id, e.name as employee_name,
@@ -853,7 +1119,7 @@ if ( strpos( $view, 'add-product' ) !== false ) {
     global $wpdb;
     
     // Fetch Categories
-    $categories = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}Prod_Category ORDER BY name ASC" );
+    $categories = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}prod_category ORDER BY name ASC" );
     $cat_options = '';
     if ( ! empty( $categories ) ) {
         foreach ( $categories as $cat ) {
@@ -888,6 +1154,47 @@ if ( strpos( $view, 'add-product' ) !== false ) {
         $content
     );
 }
+
+// 3.5 Inject Login and Registration alerts/messages
+if ( strpos( $view, 'auth-sign-in' ) !== false ) {
+    global $posdash_login_error;
+    $login_info = '';
+    if ( isset( $_GET['loggedout'] ) ) {
+        if ( $_GET['loggedout'] === 'idle' ) {
+            $login_info = 'You have been logged out due to 3 minutes of inactivity.';
+        } elseif ( $_GET['loggedout'] === 'manual' ) {
+            $login_info = 'You have successfully logged out.';
+        }
+    }
+
+    if ( ! empty( $posdash_login_error ) ) {
+        $error_html = '<div class="alert alert-danger mb-3" role="alert">' . esc_html( $posdash_login_error ) . '</div>';
+        $content = str_replace( '<form method="POST" action="">', '<form method="POST" action="">' . $error_html, $content );
+        $content = str_replace( '<form>', '<form>' . $error_html, $content ); // fallback
+    } elseif ( ! empty( $login_info ) ) {
+        $info_html = '<div class="alert alert-info mb-3" role="alert">' . esc_html( $login_info ) . '</div>';
+        $content = str_replace( '<form method="POST" action="">', '<form method="POST" action="">' . $info_html, $content );
+        $content = str_replace( '<form>', '<form>' . $info_html, $content ); // fallback
+    }
+}
+
+if ( strpos( $view, 'auth-sign-up' ) !== false ) {
+    global $posdash_signup_error, $posdash_signup_success;
+    if ( ! empty( $posdash_signup_error ) ) {
+        $error_html = '<div class="alert alert-danger mb-3" role="alert">' . esc_html( $posdash_signup_error ) . '</div>';
+        $content = str_replace( '<form method="POST" action="">', '<form method="POST" action="">' . $error_html, $content );
+        $content = str_replace( '<form>', '<form>' . $error_html, $content ); // fallback
+    }
+    if ( ! empty( $posdash_signup_success ) ) {
+        $success_html = '<div class="alert alert-success mb-3" role="alert">' . esc_html( $posdash_signup_success ) . '</div>';
+        $content = str_replace( '<form method="POST" action="">', '<form method="POST" action="">' . $success_html, $content );
+        $content = str_replace( '<form>', '<form>' . $success_html, $content ); // fallback
+    }
+}
+
+// C1: Inject CSRF nonce into all forms
+$nonce_field = wp_nonce_field( 'posdash_form_action', '_wpnonce', true, false );
+$content = preg_replace( '/(<form[^>]*>)/i', '$1' . $nonce_field, $content );
 
 // 4. Output the page content, using get_header() and get_footer() if it's a standard page
 if ( stripos( $content, '<head>' ) !== false ) {

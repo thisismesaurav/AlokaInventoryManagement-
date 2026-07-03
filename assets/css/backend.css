@@ -10337,16 +10337,16 @@ i.amber-text {
   margin: 0; }
 
 .iq-footer {
-  padding: 0 15px;
+  padding: 0;
   margin-left: 260px;
-  width: calc(100vw - 264px);
+  width: calc(100% - 260px);
   background: #fff;
-  box-shadow: none;
-  -webkit-transition: all 0.3s ease-in-out;
-  -moz-transition: all 0.3s ease-in-out;
-  -ms-transition: all 0.3s ease-in-out;
-  -o-transition: all 0.3s ease-in-out;
-  transition: all 0.3s ease-in-out; }
+  box-shadow: 0 -1px 4px rgba(0,0,0,0.06); }
+
+  .iq-footer .iq-footer-inner {
+    max-width: 50%;
+    margin: 0 auto;
+    padding: 0 15px; }
   .iq-footer ul li a {
     color: #676E8A; }
     .iq-footer ul li a:hover {
@@ -10411,20 +10411,20 @@ body.tab-horizontal .iq-footer {
 
 @media (min-width: 1300px) {
   body.sidebar-main .iq-footer {
-    margin-left: 70px;
-    width: calc(100vw - 74px); } }
+    margin-left: 0 !important;
+    width: 100% !important; } }
 
 @media (max-width: 1299px) {
   .iq-footer {
-    padding: 0px 15px;
-    margin-left: 0;
-    width: 100%; }
+    padding: 0;
+    margin-left: 0 !important;
+    width: 100% !important; }
   body.sidebar-main .iq-footer {
-    padding: 15px 10px;
-    margin-left: 0;
-    width: 100%; }
+    padding: 0;
+    margin-left: 0 !important;
+    width: 100% !important; }
   .without-right-sidebar .iq-footer {
-    width: 100%; } }
+    width: 100% !important; } }
 
 @media (max-width: 991px) {
   .iq-footer {
@@ -15571,16 +15571,46 @@ fieldset[disabled] .btn {
   left: 6px;
   font-size: 10px;
   background: #ffffff;
-  padding: 5px 8px; }
+  padding: 0 4px;
+  line-height: 1; }
+
+.floating-input:focus {
+  border-top-color: transparent; }
 
 .floating-input:not(:placeholder-shown) {
   color: #676E8A;
-  border: 1px solid #DCDFE8; }
+  border: 1px solid #DCDFE8;
+  border-top-color: transparent; }
   .floating-input:not(:placeholder-shown) ~ label {
     top: 0;
     font-size: 14px;
     background: #ffffff;
-    padding: 5px 8px; }
+    padding: 0 4px;
+    line-height: 1; }
+
+.password-toggle-wrapper {
+  position: relative; }
+
+.password-toggle-wrapper .floating-input {
+  padding-right: 42px; }
+
+.password-toggle-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #676E8A;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1;
+  z-index: 10;
+  outline: none; }
+
+.password-toggle-btn:hover {
+  color: #32BDEA; }
 
 @media (min-width: 992px) {
   .lb-img {
@@ -20204,3 +20234,21 @@ i {
     border: 0 !important; }
   .card-item-right .style-text {
     margin-left: 10px; } }
+
+/* Custom UI Fixes */
+.header-brand-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-weight: bold;
+}
+.header-brand-center h4 {
+    font-weight: 800;
+}
+.sidebar-main .iq-sidebar-logo {
+    justify-content: center !important;
+}
+.sidebar-main .iq-sidebar-logo .iq-menu-bt-sidebar {
+    margin: 0 auto !important;
+}
+

@@ -1,309 +1,124 @@
 <div class="content-page">
      <div class="container-fluid">
+        <!-- Salutation Greeting -->
         <div class="row">
-            <div class="col-lg-4">
-                <div class="card card-transparent card-block card-stretch card-height border-none">
+            <div class="col-lg-12">
+                <div class="card card-transparent card-block card-stretch card-height border-none mb-0">
                     <div class="card-body p-0 mt-lg-2 mt-0">
                         <h3 class="mb-3">Hi Graham, Good Morning</h3>
-                        <p class="mb-0 mr-4">Your dashboard gives you views of key performance or business process.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-8">
-                <div class="row">
-                    <div class="col-lg-4 col-md-4">
-                        <div class="card card-block card-stretch card-height">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center mb-4 card-total-sale">
-                                    <div class="icon iq-icon-box-2 bg-info-light">
-                                        <img src="../assets/images/product/1.png" class="img-fluid" alt="image">
-                                    </div>
-                                    <div>
-                                        <p class="mb-2">Total Products</p>
-                                        <h4><!-- DASHBOARD_TOTAL_PRODUCTS --></h4>
-                                    </div>
-                                </div>                                
-                                <div class="iq-progress-bar mt-2">
-                                    <span class="bg-info iq-progress progress-1" data-percent="85">
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-4 col-md-4">
-                        <div class="card card-block card-stretch card-height">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center mb-4 card-total-sale">
-                                    <div class="icon iq-icon-box-2 bg-danger-light">
-                                        <img src="../assets/images/product/2.png" class="img-fluid" alt="image">
-                                    </div>
-                                    <div>
-                                        <p class="mb-2">Total Labour Cost</p>
-                                        <h4><!-- DASHBOARD_TOTAL_LABOUR_COST --></h4>
-                                    </div>
-                                </div>
-                                <div class="iq-progress-bar mt-2">
-                                    <span class="bg-danger iq-progress progress-1" data-percent="70">
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-4 col-md-4">
-                        <div class="card card-block card-stretch card-height">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center mb-4 card-total-sale">
-                                    <div class="icon iq-icon-box-2 bg-success-light">
-                                        <img src="../assets/images/product/3.png" class="img-fluid" alt="image">
-                                    </div>
-                                    <div>
-                                        <p class="mb-2">Product Sold</p>
-                                        <h4>4589 M</h4>
-                                    </div>
-                                </div>
-                                <div class="iq-progress-bar mt-2">
-                                    <span class="bg-success iq-progress progress-1" data-percent="75">
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="card card-block card-stretch card-height">
-                    <div class="card-header d-flex justify-content-between">
-                        <div class="header-title">
-                            <h4 class="card-title">Overview</h4>
-                        </div>                        
-                        <div class="card-header-toolbar d-flex align-items-center">
-                            <div class="dropdown">
-                                <span class="dropdown-toggle dropdown-bg btn" id="dropdownMenuButton001"
-                                    data-toggle="dropdown">
-                                    This Month<i class="ri-arrow-down-s-line ml-1"></i>
-                                </span>
-                                <div class="dropdown-menu dropdown-menu-right shadow-none"
-                                    aria-labelledby="dropdownMenuButton001">
-                                    <a class="dropdown-item" href="#">Year</a>
-                                    <a class="dropdown-item" href="#">Month</a>
-                                    <a class="dropdown-item" href="#">Week</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>                    
-                    <div class="card-body">
-                        <div id="layout1-chart1"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="card card-block card-stretch card-height">
-                    <div class="card-header d-flex align-items-center justify-content-between">
-                        <div class="header-title">
-                            <h4 class="card-title">Revenue Vs Cost</h4>
-                        </div>
-                        <div class="card-header-toolbar d-flex align-items-center">
-                            <div class="dropdown">
-                                <span class="dropdown-toggle dropdown-bg btn" id="dropdownMenuButton002"
-                                    data-toggle="dropdown">
-                                    This Month<i class="ri-arrow-down-s-line ml-1"></i>
-                                </span>
-                                <div class="dropdown-menu dropdown-menu-right shadow-none"
-                                    aria-labelledby="dropdownMenuButton002">
-                                    <a class="dropdown-item" href="#">Yearly</a>
-                                    <a class="dropdown-item" href="#">Monthly</a>
-                                    <a class="dropdown-item" href="#">Weekly</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div id="layout1-chart-2" style="min-height: 360px;"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-8">
-                <div class="card card-block card-stretch card-height">
-                    <div class="card-header d-flex align-items-center justify-content-between">
-                        <div class="header-title">
-                            <h4 class="card-title">Top Products</h4>
-                        </div>
-                        <div class="card-header-toolbar d-flex align-items-center">
-                            <div class="dropdown">
-                                <span class="dropdown-toggle dropdown-bg btn" id="dropdownMenuButton006"
-                                    data-toggle="dropdown">
-                                    This Month<i class="ri-arrow-down-s-line ml-1"></i>
-                                </span>
-                                <div class="dropdown-menu dropdown-menu-right shadow-none"
-                                    aria-labelledby="dropdownMenuButton006">
-                                    <a class="dropdown-item" href="#">Year</a>
-                                    <a class="dropdown-item" href="#">Month</a>
-                                    <a class="dropdown-item" href="#">Week</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <ul class="list-unstyled row top-product mb-0">
-                            <!-- DASHBOARD_TOP_CATEGORIES -->
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-4">  
-                <div class="card card-transparent card-block card-stretch mb-4">
-                    <div class="card-header d-flex align-items-center justify-content-between p-0">
-                        <div class="header-title">
-                            <h4 class="card-title mb-0">Best Item All Time</h4>
-                        </div>
-                        <div class="card-header-toolbar d-flex align-items-center">
-                            <div><a href="#" class="btn btn-primary view-btn font-size-14">View All</a></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card card-block card-stretch card-height-helf">
-                    <div class="card-body card-item-right">
-                        <div class="d-flex align-items-top">
-                            <div class="bg-warning-light rounded">
-                                <img src="../assets/images/product/04.png" class="style-img img-fluid m-auto" alt="image">
-                            </div>
-                            <div class="style-text text-left">
-                                <h5 class="mb-2">Coffee Beans Packet</h5>
-                                <p class="mb-2">Total Sell : 45897</p>
-                                <p class="mb-0">Total Earned : $45,89 M</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card card-block card-stretch card-height-helf">
-                    <div class="card-body card-item-right">
-                        <div class="d-flex align-items-top">
-                            <div class="bg-danger-light rounded">
-                                <img src="../assets/images/product/05.png" class="style-img img-fluid m-auto" alt="image">
-                            </div>
-                            <div class="style-text text-left">
-                                <h5 class="mb-2">Bottle Cup Set</h5>
-                                <p class="mb-2">Total Sell : 44359</p>
-                                <p class="mb-0">Total Earned : $45,50 M</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>            
-            <div class="col-lg-4">  
-                <div class="card card-block card-stretch card-height-helf">
-                    <div class="card-body">
-                        <div class="d-flex align-items-top justify-content-between">
-                            <div class="">
-                                <p class="mb-0">Total Products</p>
-                                <h5><!-- DASHBOARD_INCOME_PRODUCTS --></h5>
-                            </div>
-                            <div class="card-header-toolbar d-flex align-items-center">
-                                <div class="dropdown">
-                                    <span class="dropdown-toggle dropdown-bg btn" id="dropdownMenuButton003"
-                                        data-toggle="dropdown">
-                                        This Month<i class="ri-arrow-down-s-line ml-1"></i>
-                                    </span>
-                                    <div class="dropdown-menu dropdown-menu-right shadow-none"
-                                        aria-labelledby="dropdownMenuButton003">
-                                        <a class="dropdown-item" href="#">Year</a>
-                                        <a class="dropdown-item" href="#">Month</a>
-                                        <a class="dropdown-item" href="#">Week</a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div id="layout1-chart-3" class="layout-chart-1"></div>
-                    </div>
-                </div>
-                <div class="card card-block card-stretch card-height-helf">
-                    <div class="card-body">
-                        <div class="d-flex align-items-top justify-content-between">
-                            <div class="">
-                                <p class="mb-0">Labour Cost</p>
-                                <h5><!-- DASHBOARD_EXPENSE_LABOUR_COST --></h5>
-                            </div>
-                            <div class="card-header-toolbar d-flex align-items-center">
-                                <div class="dropdown">
-                                    <span class="dropdown-toggle dropdown-bg btn" id="dropdownMenuButton004"
-                                        data-toggle="dropdown">
-                                        This Month<i class="ri-arrow-down-s-line ml-1"></i>
-                                    </span>
-                                    <div class="dropdown-menu dropdown-menu-right shadow-none"
-                                        aria-labelledby="dropdownMenuButton004">
-                                        <a class="dropdown-item" href="#">Year</a>
-                                        <a class="dropdown-item" href="#">Month</a>
-                                        <a class="dropdown-item" href="#">Week</a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div id="layout1-chart-4" class="layout-chart-2"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-8">  
-                <div class="card card-block card-stretch card-height">
-                    <div class="card-header d-flex justify-content-between">
-                        <div class="header-title">
-                            <h4 class="card-title">Order Summary</h4>
-                        </div>                        
-                        <div class="card-header-toolbar d-flex align-items-center">
-                            <div class="dropdown">
-                                <span class="dropdown-toggle dropdown-bg btn" id="dropdownMenuButton005"
-                                    data-toggle="dropdown">
-                                    This Month<i class="ri-arrow-down-s-line ml-1"></i>
-                                </span>
-                                <div class="dropdown-menu dropdown-menu-right shadow-none"
-                                    aria-labelledby="dropdownMenuButton005">
-                                    <a class="dropdown-item" href="#">Year</a>
-                                    <a class="dropdown-item" href="#">Month</a>
-                                    <a class="dropdown-item" href="#">Week</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div> 
-                    <div class="card-body">
-                        <div class="d-flex flex-wrap align-items-center mt-2">
-                            <div class="d-flex align-items-center progress-order-left">
-                                <div class="progress progress-round m-0 orange conversation-bar" data-percent="46">
-                                    <span class="progress-left">
-                                        <span class="progress-bar"></span>
-                                    </span>
-                                    <span class="progress-right">
-                                        <span class="progress-bar"></span>
-                                    </span>
-                                    <div class="progress-value text-secondary">46%</div>
-                                </div>
-                                <div class="progress-value ml-3 pr-5 border-right">
-                                    <h5>$12,6598</h5>
-                                    <p class="mb-0">Average Orders</p>
-                                </div>
-                            </div>
-                            <div class="d-flex align-items-center ml-5 progress-order-right">
-                                <div class="progress progress-round m-0 primary conversation-bar" data-percent="46">
-                                    <span class="progress-left">
-                                        <span class="progress-bar"></span>
-                                    </span>
-                                    <span class="progress-right">
-                                        <span class="progress-bar"></span>
-                                    </span>
-                                    <div class="progress-value text-primary">46%</div>
-                                </div>
-                                <div class="progress-value ml-3">
-                                    <h5>$59,8478</h5>
-                                    <p class="mb-0">Top Orders</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-body pt-0">
-                        <div id="layout1-chart-5"></div>
+                        <p class="text-muted mb-0">Your dashboard gives you views of key performance or business process.</p>
                     </div>
                 </div>
             </div>
         </div>
-        <!-- Page end  -->
-    </div>
-      </div>
-    
+
+        <!-- Dynamic Stats Row -->
+        <!-- DASHBOARD_STATS_ROW -->
+
+        <!-- Quick Actions Grid -->
+        <div class="row mt-4">
+            <div class="col-lg-12">
+                <h5 class="mb-3 font-weight-bold">Quick Actions</h5>
+            </div>
+            
+            <!-- Action 1: Log Work -->
+            <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+                <a href="add-production-log" class="card-link">
+                    <div class="card card-block card-stretch card-height quick-action-card border-none" style="background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); transition: all 0.3s ease;">
+                        <div class="card-body text-center p-4">
+                            <div class="icon-container mb-3 d-inline-flex align-items-center justify-content-center bg-primary text-white rounded-circle" style="width: 60px; height: 60px; box-shadow: 0 4px 10px rgba(0,123,255,0.3);">
+                                <i class="las la-plus-circle" style="font-size: 30px;"></i>
+                            </div>
+                            <h5 class="mb-1 font-weight-bold text-dark">Log Work</h5>
+                            <p class="text-muted mb-0 small">Log daily work production of employees</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Action 2: Log Raw Material -->
+            <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+                <a href="add-raw-material" class="card-link">
+                    <div class="card card-block card-stretch card-height quick-action-card border-none" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); transition: all 0.3s ease;">
+                        <div class="card-body text-center p-4">
+                            <div class="icon-container mb-3 d-inline-flex align-items-center justify-content-center bg-warning text-dark rounded-circle" style="width: 60px; height: 60px; box-shadow: 0 4px 10px rgba(255,193,7,0.3);">
+                                <i class="las la-cubes" style="font-size: 30px;"></i>
+                            </div>
+                            <h5 class="mb-1 font-weight-bold text-dark">Log Raw Material</h5>
+                            <p class="text-muted mb-0 small">Log raw materials and updates</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Action 3: Add Product -->
+            <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+                <a href="add-product" class="card-link">
+                    <div class="card card-block card-stretch card-height quick-action-card border-none" style="background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); transition: all 0.3s ease;">
+                        <div class="card-body text-center p-4">
+                            <div class="icon-container mb-3 d-inline-flex align-items-center justify-content-center bg-success text-white rounded-circle" style="width: 60px; height: 60px; box-shadow: 0 4px 10px rgba(40,167,69,0.3);">
+                                <i class="las la-box-open" style="font-size: 30px;"></i>
+                            </div>
+                            <h5 class="mb-1 font-weight-bold text-dark">Add Product</h5>
+                            <p class="text-muted mb-0 small">Register finished items & catalog data</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Action 4: View Reports -->
+            <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+                <a href="report-employee" class="card-link">
+                    <div class="card card-block card-stretch card-height quick-action-card border-none" style="background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); transition: all 0.3s ease;">
+                        <div class="card-body text-center p-4">
+                            <div class="icon-container mb-3 d-inline-flex align-items-center justify-content-center text-white rounded-circle" style="width: 60px; height: 60px; background-color: #a855f7; box-shadow: 0 4px 10px rgba(168,85,247,0.3);">
+                                <i class="las la-chart-bar" style="font-size: 30px;"></i>
+                            </div>
+                            <h5 class="mb-1 font-weight-bold text-dark">Reports</h5>
+                            <p class="text-muted mb-0 small">Access salary, employee & product logs</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Activity Feed Section -->
+        <div class="row mt-4">
+            <div class="col-lg-12 mb-4">
+                <div class="card card-block card-stretch card-height border-none shadow-sm" style="border-radius: 12px; background: #fff;">
+                    <div class="card-header d-flex justify-content-between align-items-center bg-white border-none py-3" style="border-radius: 12px 12px 0 0;">
+                        <div class="header-title">
+                            <h4 class="card-title font-weight-bold text-dark m-0">Today's Activity Feed</h4>
+                        </div>
+                        <span class="badge badge-primary-light font-weight-bold py-2 px-3" style="border-radius: 30px; font-size: 12px;">
+                            <i class="las la-clock mr-1"></i> Real-time logs
+                        </span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table mb-0 tbl-server-info">
+                                <thead class="bg-light text-muted text-uppercase" style="font-size: 11px; letter-spacing: 0.5px;">
+                                    <tr>
+                                        <th style="padding: 12px 20px !important;">Time</th>
+                                        <th style="padding: 12px 20px !important;">Staff Name</th>
+                                        <th style="padding: 12px 20px !important;">Log Type</th>
+                                        <th style="padding: 12px 20px !important;">Product / Material</th>
+                                        <th class="text-center" style="padding: 12px 20px !important;">Quantity</th>
+                                        <th class="text-right" style="padding: 12px 20px !important;">Labour Payout</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- DASHBOARD_ACTIVITY_FEED -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Extra Widgets Section -->
+        <!-- DASHBOARD_EXTRA_WIDGETS -->
+
+     </div>
+</div>

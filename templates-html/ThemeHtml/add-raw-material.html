@@ -1,0 +1,294 @@
+<div class="content-page">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header d-flex justify-content-between bg-white border-bottom-0 pt-4 pb-0">
+                        <div class="header-title">
+                            <h4 class="card-title text-primary font-weight-bold">Log Raw Material</h4>
+                            <p class="text-muted">Select date and log raw materials. System will record quantities logged.</p>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Step 1: Date Selection -->
+                        <div id="step-1-date" class="mb-4 bg-light p-4 rounded animate-fade-in">
+                            <h5 class="mb-3"><i class="ri-calendar-event-line mr-2"></i>Step 1: Select Log Date</h5>
+                            <div class="form-group mb-0 col-md-4 pl-0">
+                                <label class="font-weight-bold">Date of Log</label>
+                                <input type="date" id="log_date" class="form-control form-control-lg border-primary">
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Product Logging -->
+                        <div id="step-2-logging" class="animate-fade-in">
+                            <hr class="my-4">
+                            <h5 class="mb-3"><i class="ri-shopping-cart-2-line mr-2"></i>Step 2: Log Raw Material Products</h5>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Category Filter</label>
+                                        <select id="product_category" class="form-control">
+                                            <option value="">All Categories</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="form-group position-relative">
+                                        <label class="font-weight-bold">Search Raw Material (ID or Name)</label>
+                                        <input type="text" id="product_search" class="form-control border-success" placeholder="Type to search raw material..." autocomplete="off">
+                                        <ul id="product_results" class="list-group position-absolute w-100 shadow-sm" style="z-index: 1000; display: none;"></ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Live Daily Log Table -->
+                            <div class="mt-5">
+                                <h5 class="mb-3"><i class="ri-list-check-2 mr-2"></i>Raw Material Log for Selected Date</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover" id="raw_log_table">
+                                        <thead class="bg-primary text-white">
+                                            <tr>
+                                                <th>Product ID</th>
+                                                <th>Product Name</th>
+                                                <th>Category</th>
+                                                <th>Log Date</th>
+                                                <th>Quantity Logged</th>
+                                                <th>Logged By</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Data injected here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quantity Modal -->
+<div class="modal fade" id="quantityModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title text-white"><i class="ri-add-box-line mr-2"></i>Log Raw Material Quantity</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4">
+                <h5 id="modal_product_name" class="text-dark font-weight-bold mb-1"></h5>
+                <p class="text-muted mb-4 badge badge-light border">Product ID: <span id="modal_product_id"></span></p>
+                
+                <div class="form-group mb-0">
+                    <label class="font-weight-bold text-dark h6">Enter Quantity</label>
+                    <input type="number" id="modal_quantity" class="form-control form-control-lg text-center" min="1" value="1" style="font-size: 24px; font-weight: bold;">
+                    <div class="invalid-feedback">Please enter a valid quantity greater than 0.</div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary px-4" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary px-4 font-weight-bold" id="save_log_btn"><i class="ri-save-3-line mr-1"></i> Save & Log</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // AJAX URL for WordPress environment using reliable global variable
+    const ajaxurl = window.posdashAjaxUrl;
+    let selectedProduct = null;
+
+    // --- Load Categories Dynamically ---
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('log_date').value = today;
+
+        fetch(`${ajaxurl}?action=get_all_categories`)
+            .then(r => r.json())
+            .then(res => {
+                if(res.success) {
+                    const catSelect = document.getElementById('product_category');
+                    res.data.forEach(cat => {
+                        const opt = document.createElement('option');
+                        opt.value = cat.name;
+                        opt.textContent = cat.name;
+                        catSelect.appendChild(opt);
+                    });
+                }
+            });
+
+        loadRawLogs();
+    });
+
+    document.getElementById('log_date').addEventListener('change', function() {
+        loadRawLogs();
+    });
+
+    // --- Product Search ---
+    const prodInput = document.getElementById('product_search');
+    const prodResults = document.getElementById('product_results');
+    const catFilter = document.getElementById('product_category');
+
+    function fetchProducts(term = '', cat = '') {
+        fetch(`${ajaxurl}?action=search_raw_material_products&term=${encodeURIComponent(term)}&category=${encodeURIComponent(cat)}`)
+            .then(r => r.json())
+            .then(res => {
+                if(res.success) {
+                    prodResults.innerHTML = '';
+                    if (res.data.length === 0) {
+                        prodResults.innerHTML = '<li class="list-group-item text-muted">No raw material products found.</li>';
+                        prodResults.style.display = 'block';
+                        return;
+                    }
+                    res.data.forEach(prod => {
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item list-group-item-action cursor-pointer d-flex justify-content-between align-items-center';
+                        li.innerHTML = `<div><strong class="text-primary">${prod.name}</strong> <small class="text-muted ml-2">(ID: ${prod.id})</small><br><small class="text-secondary">${prod.category}</small></div>`;
+                        li.onclick = () => openQuantityModal(prod);
+                        prodResults.appendChild(li);
+                    });
+                    prodResults.style.display = 'block';
+                }
+            });
+    }
+
+    // Fetch and show products immediately when a category is selected
+    catFilter.addEventListener('change', function() {
+        const cat = this.value;
+        const term = prodInput.value;
+        if(cat || term.length > 0) {
+            fetchProducts(term, cat);
+        } else {
+            prodResults.style.display = 'none';
+        }
+    });
+
+    // Fetch and filter when typing
+    prodInput.addEventListener('input', function() {
+        const term = this.value;
+        const cat = catFilter.value;
+        if(term.length === 0 && !cat) {
+            prodResults.style.display = 'none';
+            return;
+        }
+        fetchProducts(term, cat);
+    });
+
+    // Show dropdown if input is clicked and we have a category or term
+    prodInput.addEventListener('focus', function() {
+        const term = this.value;
+        const cat = catFilter.value;
+        if(term.length > 0 || cat) {
+            fetchProducts(term, cat);
+        }
+    });
+
+    // Hide dropdown when clicking completely outside
+    document.addEventListener('click', function(e) {
+        if (!prodInput.contains(e.target) && !prodResults.contains(e.target) && !catFilter.contains(e.target)) {
+            prodResults.style.display = 'none';
+        }
+    });
+
+    // --- Modal Logic ---
+    function openQuantityModal(prod) {
+        selectedProduct = prod;
+        prodResults.style.display = 'none';
+        prodInput.value = '';
+        
+        document.getElementById('modal_product_name').innerText = prod.name;
+        document.getElementById('modal_product_id').innerText = prod.id;
+        document.getElementById('modal_quantity').value = 1;
+        document.getElementById('modal_quantity').classList.remove('is-invalid');
+        
+        $('#quantityModal').modal('show');
+    }
+
+    document.getElementById('save_log_btn').addEventListener('click', function() {
+        const qty = parseFloat(document.getElementById('modal_quantity').value);
+        if(!qty || qty <= 0) {
+            document.getElementById('modal_quantity').classList.add('is-invalid');
+            return;
+        }
+        
+        const btn = this;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+        btn.disabled = true;
+
+        const formData = new URLSearchParams();
+        formData.append('action', 'save_raw_material_log');
+        formData.append('product_id', selectedProduct.id);
+        formData.append('quantity', qty);
+        formData.append('log_date', document.getElementById('log_date').value);
+        formData.append('nonce', window.posdashNonce);
+
+        fetch(ajaxurl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: formData.toString()
+        })
+        .then(r => r.json())
+        .then(res => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            
+            if(res.success) {
+                $('#quantityModal').modal('hide');
+                loadRawLogs(); // Refresh live list
+            } else {
+                alert('Error saving log: ' + res.data);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
+    });
+
+    // --- Load Daily Logs ---
+    function loadRawLogs() {
+        const selectedDate = document.getElementById('log_date').value;
+        if(!selectedDate) return;
+        
+        fetch(`${ajaxurl}?action=get_raw_material_logs&log_date=${encodeURIComponent(selectedDate)}`)
+            .then(r => r.json())
+            .then(res => {
+                if(res.success) {
+                    const tbody = document.querySelector('#raw_log_table tbody');
+                    tbody.innerHTML = '';
+                    if(res.data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No raw material logs found for this date.</td></tr>';
+                        return;
+                    }
+                    res.data.forEach(log => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><span class="text-muted font-weight-bold">#${log.product_id}</span></td>
+                            <td class="font-weight-bold text-dark">${log.product_name}</td>
+                            <td>${log.category}</td>
+                            <td>${log.log_date}</td>
+                            <td class="text-center"><span class="badge badge-success px-3 py-2" style="font-size: 14px;">${log.quantity} Units</span></td>
+                            <td>${log.created_by}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            });
+    }
+</script>
+<style>
+    .cursor-pointer { cursor: pointer; }
+    .list-group-item:hover { background-color: #f8fbff; border-left: 3px solid #007bff; }
+    .animate-fade-in { animation: fadeIn 0.4s ease-in; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+</style>

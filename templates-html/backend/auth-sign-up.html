@@ -35,47 +35,48 @@
                               <div class="p-3">
                                  <h2 class="mb-2">Sign Up</h2>
                                  <p>Create your POSDash account.</p>
-                                 <form>
+                                 <form method="POST" action="">
+                                    <input type="hidden" name="signup_action" value="1">
                                     <div class="row">
                                        <div class="col-lg-6">
                                           <div class="floating-label form-group">
-                                             <input class="floating-input form-control" type="text" placeholder=" ">
-                                             <label>Full Name</label>
+                                             <input class="floating-input form-control" type="text" name="first_name" placeholder=" " required>
+                                             <label>First Name</label>
                                           </div>
                                        </div>
                                        <div class="col-lg-6">
                                           <div class="floating-label form-group">
-                                             <input class="floating-input form-control" type="text" placeholder=" ">
+                                             <input class="floating-input form-control" type="text" name="last_name" placeholder=" ">
                                              <label>Last Name</label>
                                           </div>
                                        </div>
                                        <div class="col-lg-6">
                                           <div class="floating-label form-group">
-                                             <input class="floating-input form-control" type="email" placeholder=" ">
+                                             <input class="floating-input form-control" type="email" name="email" placeholder=" " required>
                                              <label>Email</label>
                                           </div>
                                        </div>
                                        <div class="col-lg-6">
                                           <div class="floating-label form-group">
-                                             <input class="floating-input form-control" type="text" placeholder=" ">
+                                             <input class="floating-input form-control" type="text" name="phone" placeholder=" ">
                                              <label>Phone No.</label>
                                           </div>
                                        </div>
                                        <div class="col-lg-6">
                                           <div class="floating-label form-group">
-                                             <input class="floating-input form-control" type="password" placeholder=" ">
+                                             <input class="floating-input form-control" type="password" name="password" placeholder=" " required>
                                              <label>Password</label>
                                           </div>
                                        </div>
                                        <div class="col-lg-6">
                                           <div class="floating-label form-group">
-                                             <input class="floating-input form-control" type="password" placeholder=" ">
+                                             <input class="floating-input form-control" type="password" name="confirm_password" placeholder=" " required>
                                              <label>Confirm Password</label>
                                           </div>
                                        </div>
                                        <div class="col-lg-12">
                                           <div class="custom-control custom-checkbox mb-3">
-                                             <input type="checkbox" class="custom-control-input" id="customCheck1">
+                                             <input type="checkbox" class="custom-control-input" id="customCheck1" required>
                                              <label class="custom-control-label" for="customCheck1">I agree with the terms of use</label>
                                           </div>
                                        </div>
