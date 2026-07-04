@@ -1922,9 +1922,9 @@ add_action( 'template_redirect', function() {
             exit;
         }
 
-        // 3-Minute Inactivity Idle Logout (3 minutes = 180 seconds)
+        // 5-Hour Inactivity Idle Logout (5 hours = 18000 seconds)
         $now = time();
-        $timeout = 180; 
+        $timeout = 18000; 
 
         // If the activity cookie is not set, initialize it now (prevents accidental logouts on refresh)
         if ( ! isset( $_COOKIE['posdash_last_activity'] ) ) {
@@ -1957,7 +1957,7 @@ add_action( 'template_redirect', function() {
     }
 } );
 
-// Hook to wp_footer to inject AJAX nonce setup and 3-minute inactivity timer
+// Hook to wp_footer to inject AJAX nonce setup and 5-hour inactivity timer
 add_action( 'wp_footer', function() {
     if ( is_user_logged_in() ) {
         // Use custom clean manual logout URL to bypass WordPress confirmation screen
@@ -1974,7 +1974,7 @@ add_action( 'wp_footer', function() {
             }
 
             var idleTime = 0;
-            var idleLimit = 180; // 3 minutes in seconds
+            var idleLimit = 18000; // 5 hours in seconds
 
             function resetIdleTimer() {
                 idleTime = 0;
