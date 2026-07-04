@@ -372,7 +372,7 @@ function inventory_management_handle_submissions() {
     }
 
     // 1. Intercept DELETE actions
-    if ( isset( $_GET['action'] ) ) {
+    if ( isset( $_GET['action'] ) && strpos( $_GET['action'], 'delete_' ) === 0 ) {
         $action = sanitize_text_field( wp_unslash( $_GET['action'] ) );
         $id = isset( $_GET['id'] ) ? intval( $_GET['id'] ) : 0;
 
@@ -1961,7 +1961,7 @@ add_action( 'template_redirect', function() {
 add_action( 'wp_footer', function() {
     if ( is_user_logged_in() ) {
         // Use custom clean manual logout URL to bypass WordPress confirmation screen
-        $logout_url = esc_url( add_query_arg( array( 'action' => 'logout', 'reason' => 'idle' ), home_url( '/' ) ) );
+        $logout_url = esc_url_raw( add_query_arg( array( 'action' => 'logout', 'reason' => 'idle' ), home_url( '/' ) ) );
         $ajax_nonce = wp_create_nonce( 'posdash_ajax_action' );
         ?>
         <script type="text/javascript">
