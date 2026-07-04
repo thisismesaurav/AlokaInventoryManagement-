@@ -1921,12 +1921,46 @@ add_action( 'template_redirect', function() {
             wp_safe_redirect( home_url( '/' ) );
             exit;
         }
+
+        // 5-Hour Inactivity Idle Logout (5 hours = 18000 seconds)
+        $now = time();
+        $timeout = 18000; 
+
+        // If the activity cookie is not set, initialize it now (prevents accidental logouts on refresh)
+        if ( ! isset( $_COOKIE['posdash_last_activity'] ) ) {
+            $_COOKIE['posdash_last_activity'] = $now;
+            if ( PHP_VERSION_ID >= 70300 ) {
+                setcookie( 'posdash_last_activity', $now, array( 'expires' => $now + 86400 * 30, 'path' => COOKIEPATH, 'domain' => COOKIE_DOMAIN, 'secure' => is_ssl(), 'httponly' => true, 'samesite' => 'Strict' ) );
+            } else {
+                setcookie( 'posdash_last_activity', $now, $now + 86400 * 30, COOKIEPATH, COOKIE_DOMAIN, is_ssl(), true );
+            }
+        } else {
+            $last_activity = intval( $_COOKIE['posdash_last_activity'] );
+            if ( ( $now - $last_activity ) > $timeout ) {
+                if ( PHP_VERSION_ID >= 70300 ) {
+                    setcookie( 'posdash_last_activity', '', array( 'expires' => time() - 3600, 'path' => COOKIEPATH, 'domain' => COOKIE_DOMAIN, 'secure' => is_ssl(), 'httponly' => true, 'samesite' => 'Strict' ) );
+                } else {
+                    setcookie( 'posdash_last_activity', '', time() - 3600, COOKIEPATH, COOKIE_DOMAIN, is_ssl(), true );
+                }
+                wp_logout();
+                wp_safe_redirect( add_query_arg( 'loggedout', 'idle', home_url( '/auth-sign-in' ) ) );
+                exit;
+            } else {
+                // Update activity cookie to current time
+                if ( PHP_VERSION_ID >= 70300 ) {
+                    setcookie( 'posdash_last_activity', $now, array( 'expires' => $now + 86400 * 30, 'path' => COOKIEPATH, 'domain' => COOKIE_DOMAIN, 'secure' => is_ssl(), 'httponly' => true, 'samesite' => 'Strict' ) );
+                } else {
+                    setcookie( 'posdash_last_activity', $now, $now + 86400 * 30, COOKIEPATH, COOKIE_DOMAIN, is_ssl(), true );
+                }
+            }
+        }
     }
 } );
 
-// Hook to wp_footer to inject AJAX nonce setup
+// Hook to wp_footer to inject AJAX nonce setup and 5-hour inactivity timer
 add_action( 'wp_footer', function() {
     if ( is_user_logged_in() ) {
+        $logout_url = esc_url( wp_logout_url( add_query_arg( 'reason', 'idle', home_url( '/auth-sign-in' ) ) ) );
         $ajax_nonce = wp_create_nonce( 'posdash_ajax_action' );
         ?>
         <script type="text/javascript">
@@ -1937,6 +1971,31 @@ add_action( 'wp_footer', function() {
                     data: { nonce: "<?php echo esc_js( $ajax_nonce ); ?>" }
                 });
             }
+
+            var idleTime = 0;
+            var idleLimit = 18000; // 5 hours in seconds
+
+            function resetIdleTimer() {
+                idleTime = 0;
+            }
+
+            // Monitor events
+            var events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+            events.forEach(function(name) {
+                document.addEventListener(name, resetIdleTimer, true);
+            });
+
+            // Increment the idle counter every second
+            var idleInterval = setInterval(timerIncrement, 1000);
+
+            function timerIncrement() {
+                idleTime = idleTime + 1;
+                if (idleTime >= idleLimit) {
+                    clearInterval(idleInterval);
+                    // Redirect to logout URL
+                    window.location.href = "<?php echo $logout_url; ?>";
+                }
+            }
         })();
         </script>
         <?php
@@ -1946,10 +2005,10 @@ add_action( 'wp_footer', function() {
 // Disable admin bar for all users on the frontend
 add_filter( 'show_admin_bar', '__return_false' );
 
-// Keep users logged in by setting the cookie expiration to 1 year
+// Keep users logged in by setting the cookie expiration to 5 hours (18000 seconds)
 add_filter( 'auth_cookie_expiration', 'posdash_keep_user_logged_in', 99, 3 );
 function posdash_keep_user_logged_in( $expiration, $user_id, $remember ) {
-    return 365 * DAY_IN_SECONDS;
+    return 5 * HOUR_IN_SECONDS;
 }
 
 /**
