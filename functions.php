@@ -280,6 +280,9 @@ function inventory_management_init_db() {
         // Run migration to change string values in wp_products.product_type to their corresponding ID from wp_product_type
         inventory_management_migrate_product_types();
 
+        // Run migration to change string category names in wp_products.category to category IDs from wp_prod_category
+        inventory_management_migrate_product_categories();
+
         // Convert the column to bigint(20)
         $wpdb->query( "ALTER TABLE $table_products MODIFY COLUMN product_type bigint(20) NOT NULL DEFAULT 0" );
 
@@ -355,6 +358,54 @@ function inventory_management_migrate_product_types() {
             array( 'product_type' => $type_id ),
             array( 'id' => $prod->id )
         );
+    }
+}
+
+/**
+ * Migrate string product categories to referencing Category IDs
+ */
+function inventory_management_migrate_product_categories() {
+    global $wpdb;
+    $table_products = $wpdb->prefix . 'products';
+    $table_category = $wpdb->prefix . 'prod_category';
+
+    if ( ! $wpdb->get_var( "SHOW TABLES LIKE '$table_products'" ) || ! $wpdb->get_var( "SHOW TABLES LIKE '$table_category'" ) ) {
+        return;
+    }
+
+    $categories = $wpdb->get_results( "SELECT id, name FROM $table_category" );
+    if ( empty( $categories ) ) {
+        return;
+    }
+
+    $name_map = array();
+    foreach ( $categories as $cat ) {
+        $name_map[ strtolower( trim( $cat->name ) ) ] = intval( $cat->id );
+    }
+
+    $products = $wpdb->get_results( "SELECT id, category FROM $table_products" );
+    if ( empty( $products ) ) {
+        return;
+    }
+
+    foreach ( $products as $prod ) {
+        if ( empty( $prod->category ) ) {
+            continue;
+        }
+
+        if ( is_numeric( $prod->category ) && intval( $prod->category ) > 0 ) {
+            continue;
+        }
+
+        $cat_str = strtolower( trim( $prod->category ) );
+        if ( isset( $name_map[ $cat_str ] ) ) {
+            $cat_id = $name_map[ $cat_str ];
+            $wpdb->update(
+                $table_products,
+                array( 'category' => $cat_id ),
+                array( 'id' => $prod->id )
+            );
+        }
     }
 }
 
@@ -459,7 +510,8 @@ function inventory_management_handle_submissions() {
     if ( 'add_product' === $action_type ) {
         $product_type = isset( $_POST['product_type'] ) ? intval( sanitize_text_field( wp_unslash( $_POST['product_type'] ) ) ) : 0;
         $product_name = isset( $_POST['product_name'] ) ? sanitize_text_field( wp_unslash( $_POST['product_name'] ) ) : '';
-        $category = isset( $_POST['category'] ) ? sanitize_text_field( wp_unslash( $_POST['category'] ) ) : '';
+        $category_raw = isset( $_POST['category'] ) ? sanitize_text_field( wp_unslash( $_POST['category'] ) ) : '';
+        $category = is_numeric( $category_raw ) ? intval( $category_raw ) : $category_raw;
         $cost = isset( $_POST['cost'] ) ? floatval( sanitize_text_field( wp_unslash( $_POST['cost'] ) ) ) : 0.00;
         $quantity = 1.00;
         $description = isset( $_POST['description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['description'] ) ) : '';
@@ -512,7 +564,8 @@ function inventory_management_handle_submissions() {
             if ( $existing_product ) {
                 $product_type = isset( $_POST['product_type'] ) ? intval( sanitize_text_field( wp_unslash( $_POST['product_type'] ) ) ) : 0;
                 $product_name = isset( $_POST['product_name'] ) ? sanitize_text_field( wp_unslash( $_POST['product_name'] ) ) : '';
-                $category = isset( $_POST['category'] ) ? sanitize_text_field( wp_unslash( $_POST['category'] ) ) : '';
+                $category_raw = isset( $_POST['category'] ) ? sanitize_text_field( wp_unslash( $_POST['category'] ) ) : '';
+                $category = is_numeric( $category_raw ) ? intval( $category_raw ) : $category_raw;
                 $cost = isset( $_POST['cost'] ) ? floatval( sanitize_text_field( wp_unslash( $_POST['cost'] ) ) ) : 0.00;
                 $description = isset( $_POST['description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['description'] ) ) : '';
 

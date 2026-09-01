@@ -555,21 +555,24 @@ if ( strpos( $view, 'user-profile' ) !== false ) {
 // Render Dynamic Real-Time Products from wp_products
 if ( strpos( $view, 'list-product' ) !== false ) {
     global $wpdb;
+    inventory_management_migrate_product_categories();
     $products = $wpdb->get_results( "
-        SELECT p.*, t.Type as type_name 
+        SELECT p.*, t.Type as type_name, c.name as category_name
         FROM {$wpdb->prefix}products p
         LEFT JOIN {$wpdb->prefix}product_type t ON p.product_type = t.id
+        LEFT JOIN {$wpdb->prefix}prod_category c ON (p.category = c.id OR p.category = c.name)
         ORDER BY p.id DESC
     " );
     $tbody = '<tbody class="ligth-body">';
     if ( ! empty( $products ) ) {
         foreach ( $products as $index => $product ) {
             $cost = number_format( (float) $product->cost, 2 );
+            $cat_display = ! empty( $product->category_name ) ? $product->category_name : $product->category;
 
             $tbody .= '<tr>';
             $tbody .= '<td class="text-muted" style="font-size:12px;">#' . esc_html( $product->id ) . '</td>';
             $tbody .= '<td>' . esc_html( ! empty( $product->type_name ) ? $product->type_name : $product->product_type ) . '</td>';
-            $tbody .= '<td>' . esc_html( $product->category ) . '</td>';
+            $tbody .= '<td>' . esc_html( $cat_display ) . '</td>';
             $tbody .= '<td>' . esc_html( $product->product_name ) . '</td>';
             $tbody .= '<td>₹' . esc_html( $cost ) . '</td>';
             $tbody .= '<td>';
@@ -579,7 +582,7 @@ if ( strpos( $view, 'list-product' ) !== false ) {
             $tbody .= '<a class="badge bg-success mr-2 btn-edit-product" data-toggle="tooltip" data-placement="top" title="Edit" href="#" data-id="' . intval( $product->id ) . '" onclick="window.openEditProductModal(' . intval( $product->id ) . '); return false;"><i class="ri-pencil-line mr-0"></i></a>';
             
             // Quick Edit Price Button
-            $tbody .= '<a class="badge bg-info mr-2 btn-edit-price" data-toggle="tooltip" data-placement="top" title="Edit Price" href="#" data-id="' . intval( $product->id ) . '" data-name="' . esc_attr( $product->product_name ) . '" data-category="' . esc_attr( $product->category ) . '" data-cost="' . esc_attr( $product->cost ) . '" onclick="window.openQuickEditPriceModal(' . intval( $product->id ) . '); return false;"><i class="ri-price-tag-3-line mr-0"></i></a>';
+            $tbody .= '<a class="badge bg-info mr-2 btn-edit-price" data-toggle="tooltip" data-placement="top" title="Edit Price" href="#" data-id="' . intval( $product->id ) . '" data-name="' . esc_attr( $product->product_name ) . '" data-category="' . esc_attr( $cat_display ) . '" data-cost="' . esc_attr( $product->cost ) . '" onclick="window.openQuickEditPriceModal(' . intval( $product->id ) . '); return false;"><i class="ri-price-tag-3-line mr-0"></i></a>';
             
             // Delete Row Button (Secure with Nonce)
             $delete_url = wp_nonce_url(
@@ -602,14 +605,16 @@ if ( strpos( $view, 'list-product' ) !== false ) {
 
     // Fetch Categories for modal dropdown and filters
     $categories = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}prod_category ORDER BY name ASC" );
-    $cat_options = '';
+    $edit_cat_options = '';
+    $filter_cat_options = '';
     if ( ! empty( $categories ) ) {
         foreach ( $categories as $cat ) {
-            $cat_options .= '<option value="' . esc_attr( $cat->name ) . '">' . esc_html( $cat->name ) . '</option>';
+            $edit_cat_options .= '<option value="' . esc_attr( $cat->id ) . '">' . esc_html( $cat->name ) . '</option>';
+            $filter_cat_options .= '<option value="' . esc_attr( $cat->name ) . '">' . esc_html( $cat->name ) . '</option>';
         }
     }
-    $content = str_replace( '<!-- EDIT_CATEGORY_OPTIONS -->', $cat_options, $content );
-    $content = str_replace( '<!-- DYNAMIC_CATEGORY_OPTIONS -->', $cat_options, $content );
+    $content = str_replace( '<!-- EDIT_CATEGORY_OPTIONS -->', $edit_cat_options, $content );
+    $content = str_replace( '<!-- DYNAMIC_CATEGORY_OPTIONS -->', $filter_cat_options, $content );
 
     // Fetch Product Types for modal dropdown and filters
     $types = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}product_type ORDER BY Type ASC" );
@@ -1184,7 +1189,7 @@ if ( strpos( $view, 'add-product' ) !== false ) {
     $cat_options = '';
     if ( ! empty( $categories ) ) {
         foreach ( $categories as $cat ) {
-            $cat_options .= '<option value="' . esc_attr( $cat->name ) . '">' . esc_html( $cat->name ) . '</option>';
+            $cat_options .= '<option value="' . esc_attr( $cat->id ) . '">' . esc_html( $cat->name ) . '</option>';
         }
     } else {
         $cat_options .= '<option>Beauty</option><option>Grocery</option><option>Food</option>';
