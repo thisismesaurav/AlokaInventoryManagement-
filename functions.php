@@ -1179,6 +1179,54 @@ function posdash_get_all_categories() {
 add_action( 'wp_ajax_save_production_log', 'posdash_save_production_log' );
 // H1: nopriv REMOVED - save actions require login
 
+add_action( 'wp_ajax_update_product_cost', 'posdash_update_product_cost' );
+function posdash_update_product_cost() {
+    if ( ! is_user_logged_in() ) {
+        wp_send_json_error( 'Authentication required.', 403 );
+        return;
+    }
+
+    check_ajax_referer( 'posdash_ajax_action', 'nonce' );
+
+    if ( ! current_user_can( 'administrator' ) ) {
+        wp_send_json_error( 'This action is only allowed for administrator.', 403 );
+        return;
+    }
+
+    global $wpdb;
+    $product_id = isset( $_POST['product_id'] ) ? intval( $_POST['product_id'] ) : 0;
+    $cost       = isset( $_POST['cost'] ) ? floatval( $_POST['cost'] ) : 0.00;
+
+    if ( $product_id <= 0 ) {
+        wp_send_json_error( 'Invalid product ID.' );
+        return;
+    }
+
+    $current_user = wp_get_current_user();
+    $username     = ! empty( $current_user->user_login ) ? $current_user->user_login : 'admin';
+    $table        = $wpdb->prefix . 'products';
+
+    $updated = $wpdb->update(
+        $table,
+        array(
+            'cost'            => $cost,
+            'Last_upd_dt'     => current_time( 'mysql' ),
+            'Last_updated_by' => $username,
+        ),
+        array( 'id' => $product_id )
+    );
+
+    if ( false !== $updated ) {
+        wp_send_json_success( array(
+            'message'    => 'Price updated successfully.',
+            'product_id' => $product_id,
+            'new_cost'   => $cost,
+        ) );
+    } else {
+        wp_send_json_error( 'Failed to update database record.' );
+    }
+}
+
 add_action( 'wp_ajax_get_products_by_category', 'posdash_get_products_by_category' );
 // H1: Removed nopriv - requires login
 function posdash_get_products_by_category() {

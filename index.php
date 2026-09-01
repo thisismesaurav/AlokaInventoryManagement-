@@ -577,7 +577,10 @@ if ( strpos( $view, 'list-product' ) !== false ) {
             $tbody .= '<div class="d-flex align-items-center list-action">';
             
             // Edit Row Button
-            $tbody .= '<a class="badge bg-success mr-2" data-toggle="tooltip" data-placement="top" title="Edit" href="#" onclick="window.openEditProductModal(' . intval( $product->id ) . '); return false;"><i class="ri-pencil-line mr-0"></i></a>';
+            $tbody .= '<a class="badge bg-success mr-2 btn-edit-product" data-toggle="tooltip" data-placement="top" title="Edit" href="#" data-id="' . intval( $product->id ) . '" onclick="window.openEditProductModal(' . intval( $product->id ) . '); return false;"><i class="ri-pencil-line mr-0"></i></a>';
+            
+            // Quick Edit Price Button
+            $tbody .= '<a class="badge bg-info mr-2 btn-edit-price" data-toggle="tooltip" data-placement="top" title="Edit Price" href="#" data-id="' . intval( $product->id ) . '" data-name="' . esc_attr( $product->product_name ) . '" data-category="' . esc_attr( $product->category ) . '" data-cost="' . esc_attr( $product->cost ) . '" onclick="window.openQuickEditPriceModal(' . intval( $product->id ) . '); return false;"><i class="ri-price-tag-3-line mr-0"></i></a>';
             
             // Delete Row Button (Secure with Nonce)
             $delete_url = wp_nonce_url(
@@ -596,7 +599,7 @@ if ( strpos( $view, 'list-product' ) !== false ) {
     $tbody .= '</tbody>';
 
     $content = preg_replace_callback( '/<tbody class="ligth-body">.*?<\/tbody>/s', function() use ($tbody) { return $tbody; }, $content );
-    $content .= '<script>window.productList = ' . wp_json_encode( $products ) . '; window.currentIsAdmin = ' . ( current_user_can( 'administrator' ) ? 'true' : 'false' ) . ';</script>';
+    $content = '<script>window.productList = ' . wp_json_encode( $products ) . '; window.currentIsAdmin = ' . ( current_user_can( 'administrator' ) ? 'true' : 'false' ) . ';</script>' . $content;
 
     // Fetch Categories for modal dropdown and filters
     $categories = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}prod_category ORDER BY name ASC" );
