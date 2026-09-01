@@ -15,7 +15,6 @@
                         <thead class="bg-white text-uppercase">
                             <tr class="ligth ligth-data">
                                 <th>Image</th>
-                                <th>Code</th>
                                 <th>Category</th>
                                 <th>Action</th>
                             </tr>
@@ -48,12 +47,6 @@
                                 <div class="form-group mb-3">
                                     <label style="font-size: 13px; font-weight: 600; color: #475569;">Category Name *</label>
                                     <input type="text" name="category_name" id="edit_category_name" class="form-control" required placeholder="Enter Category Name">
-                                </div>
-                            </div>
-                            <div class="col-md-12">
-                                <div class="form-group mb-3">
-                                    <label style="font-size: 13px; font-weight: 600; color: #475569;">Category Code *</label>
-                                    <input type="text" name="category_code" id="edit_category_code" class="form-control" required placeholder="Enter Category Code">
                                 </div>
                             </div>
                             <div class="col-md-12">
@@ -94,7 +87,6 @@
 
                 document.getElementById('edit_category_id').value = cat.id;
                 document.getElementById('edit_category_name').value = cat.name;
-                document.getElementById('edit_category_code').value = cat.code;
 
                 $('#edit-category-modal').modal('show');
             };

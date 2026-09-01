@@ -22,7 +22,6 @@
         var editId = document.getElementById('edit_product_id');
         var editType = document.getElementById('edit_product_type');
         var editName = document.getElementById('edit_product_name');
-        var editCode = document.getElementById('edit_product_code');
         var editCat = document.getElementById('edit_category');
         var editCost = document.getElementById('edit_cost');
         var editDesc = document.getElementById('edit_description');
@@ -30,7 +29,6 @@
         if (editId) editId.value = prod.id;
         if (editType) editType.value = prod.product_type;
         if (editName) editName.value = prod.product_name;
-        if (editCode) editCode.value = prod.product_code;
         if (editCat) editCat.value = prod.category;
         if (editCost) editCost.value = prod.cost;
         if (editDesc) editDesc.value = prod.description || '';
@@ -136,7 +134,6 @@
                                 <th>Category</th>
                                 <th>Product</th>
                                 <th>Cost</th>
-                                <th>Code</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -178,13 +175,6 @@
                                     <label style="font-size: 13px; font-weight: 600; color: #475569;">Name *</label>
                                     <input type="text" name="product_name" id="edit_product_name" class="form-control"
                                         required placeholder="Enter Product Name">
-                                </div>
-                            </div>
-                            <div class="col-md-12">
-                                <div class="form-group mb-3">
-                                    <label style="font-size: 13px; font-weight: 600; color: #475569;">Code *</label>
-                                    <input type="text" name="product_code" id="edit_product_code" class="form-control"
-                                        required placeholder="Enter Product Code">
                                 </div>
                             </div>
                             <div class="col-md-12">

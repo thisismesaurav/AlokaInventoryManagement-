@@ -459,7 +459,6 @@ function inventory_management_handle_submissions() {
     if ( 'add_product' === $action_type ) {
         $product_type = isset( $_POST['product_type'] ) ? intval( sanitize_text_field( wp_unslash( $_POST['product_type'] ) ) ) : 0;
         $product_name = isset( $_POST['product_name'] ) ? sanitize_text_field( wp_unslash( $_POST['product_name'] ) ) : '';
-        $product_code = isset( $_POST['product_code'] ) ? sanitize_text_field( wp_unslash( $_POST['product_code'] ) ) : '';
         $category = isset( $_POST['category'] ) ? sanitize_text_field( wp_unslash( $_POST['category'] ) ) : '';
         $cost = isset( $_POST['cost'] ) ? floatval( sanitize_text_field( wp_unslash( $_POST['cost'] ) ) ) : 0.00;
         $quantity = 1.00;
@@ -487,7 +486,6 @@ function inventory_management_handle_submissions() {
             array(
                 'product_type'      => $product_type,
                 'product_name'      => $product_name,
-                'product_code'      => $product_code,
                 'category'          => $category,
                 'cost'              => $cost,
                 'quantity'          => $quantity,
@@ -514,7 +512,6 @@ function inventory_management_handle_submissions() {
             if ( $existing_product ) {
                 $product_type = isset( $_POST['product_type'] ) ? intval( sanitize_text_field( wp_unslash( $_POST['product_type'] ) ) ) : 0;
                 $product_name = isset( $_POST['product_name'] ) ? sanitize_text_field( wp_unslash( $_POST['product_name'] ) ) : '';
-                $product_code = isset( $_POST['product_code'] ) ? sanitize_text_field( wp_unslash( $_POST['product_code'] ) ) : '';
                 $category = isset( $_POST['category'] ) ? sanitize_text_field( wp_unslash( $_POST['category'] ) ) : '';
                 $cost = isset( $_POST['cost'] ) ? floatval( sanitize_text_field( wp_unslash( $_POST['cost'] ) ) ) : 0.00;
                 $description = isset( $_POST['description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['description'] ) ) : '';
@@ -540,7 +537,6 @@ function inventory_management_handle_submissions() {
                     array(
                         'product_type'      => $product_type,
                         'product_name'      => $product_name,
-                        'product_code'      => $product_code,
                         'category'          => $category,
                         'cost'              => $cost,
                         'image'             => $image_path,
@@ -755,7 +751,6 @@ function inventory_management_handle_submissions() {
 
     if ( 'add_category' === $action_type ) {
         $name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
-        $code = isset( $_POST['code'] ) ? sanitize_text_field( wp_unslash( $_POST['code'] ) ) : '';
 
         // Handle File Upload
         $image_path = 'assets/images/table/product/01.jpg'; // default
@@ -774,7 +769,6 @@ function inventory_management_handle_submissions() {
             $wpdb->prefix . 'prod_category',
             array(
                 'name'            => $name,
-                'code'            => $code,
                 'image'           => $image_path,
                 'Created_dt'      => current_time( 'mysql' ),
                 'Last_upd_dt'     => current_time( 'mysql' ),
@@ -796,7 +790,6 @@ function inventory_management_handle_submissions() {
             $existing_category = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}prod_category WHERE id = %d", $category_id ) );
             if ( $existing_category ) {
                 $name = isset( $_POST['category_name'] ) ? sanitize_text_field( wp_unslash( $_POST['category_name'] ) ) : '';
-                $code = isset( $_POST['category_code'] ) ? sanitize_text_field( wp_unslash( $_POST['category_code'] ) ) : '';
 
                 // Handle File Upload
                 $image_path = $existing_category->image;
@@ -815,7 +808,6 @@ function inventory_management_handle_submissions() {
                     $wpdb->prefix . 'prod_category',
                     array(
                         'name'            => $name,
-                        'code'            => $code,
                         'image'           => $image_path,
                         'Last_upd_dt'     => current_time( 'mysql' ),
                         'Last_updated_by' => $username,
