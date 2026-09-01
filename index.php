@@ -695,7 +695,6 @@ if ( strpos( $view, 'list-category' ) !== false ) {
             }
             $tbody .= '<tr>';
             $tbody .= '<td class="text-muted" style="font-size:12px;">#' . esc_html( $cat->id ) . '</td>';
-            $tbody .= '<td><div class="d-flex align-items-center"><img src="' . esc_url( $img_url ) . '" class="img-fluid rounded avatar-50 mr-3" alt="image"><div>' . esc_html( $cat->name ) . '</div></div></td>';
             $tbody .= '<td>' . esc_html( $cat->name ) . '</td>';
             $tbody .= '<td>';
             $tbody .= '<div class="d-flex align-items-center list-action">';
@@ -715,7 +714,7 @@ if ( strpos( $view, 'list-category' ) !== false ) {
             $tbody .= '</tr>';
         }
     } else {
-        $tbody .= '<tr><td colspan="4" class="text-center">No categories found.</td></tr>';
+        $tbody .= '<tr><td colspan="3" class="text-center">No categories found.</td></tr>';
     }
     $tbody .= '</tbody>';
     $content = preg_replace( '/<tbody class="ligth-body">.*?<\/tbody>/s', $tbody, $content );
