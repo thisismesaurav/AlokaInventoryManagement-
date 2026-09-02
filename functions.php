@@ -1205,15 +1205,62 @@ function posdash_search_products() {
     global $wpdb;
     $term = isset( $_GET['term'] ) ? sanitize_text_field( wp_unslash( $_GET['term'] ) ) : '';
     $cat  = isset( $_GET['category'] ) ? sanitize_text_field( wp_unslash( $_GET['category'] ) ) : '';
-    
-    $table = $wpdb->prefix . 'products';
-    $cat_query = "";
-    if ( ! empty( $cat ) ) {
-        $cat_query = $wpdb->prepare( " AND category = %s", $cat );
+
+    $prod_table = $wpdb->prefix . 'products';
+    $cat_table  = $wpdb->prefix . 'prod_category';
+
+    $where_clauses = array();
+    $params        = array();
+
+    // Term search (Name or ID)
+    if ( ! empty( $term ) ) {
+        $like_term       = '%' . $wpdb->esc_like( $term ) . '%';
+        $where_clauses[] = "(p.product_name LIKE %s OR p.id LIKE %s)";
+        $params[]        = $like_term;
+        $params[]        = $like_term;
     }
-    
-    $results = $wpdb->get_results( $wpdb->prepare( "SELECT id, product_name as name, category, cost FROM $table WHERE (product_name LIKE %s OR id LIKE %s) $cat_query LIMIT 50", '%' . $wpdb->esc_like( $term ) . '%', '%' . $wpdb->esc_like( $term ) . '%' ) );
-    
+
+    // Category filter: match category ID, category name, or joined category name
+    if ( ! empty( $cat ) ) {
+        $cat_id = 0;
+        if ( is_numeric( $cat ) ) {
+            $cat_id = intval( $cat );
+        } else {
+            // Look up ID for the category name
+            $cat_id = intval( $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $cat_table WHERE LOWER(TRIM(name)) = LOWER(TRIM(%s)) LIMIT 1", $cat ) ) );
+        }
+
+        if ( $cat_id > 0 ) {
+            $where_clauses[] = "(p.category = %s OR p.category = %d OR c.name = %s)";
+            $params[]        = strval( $cat_id );
+            $params[]        = $cat_id;
+            $params[]        = $cat;
+        } else {
+            $where_clauses[] = "(p.category = %s OR c.name = %s)";
+            $params[]        = $cat;
+            $params[]        = $cat;
+        }
+    }
+
+    $where_sql = ! empty( $where_clauses ) ? 'WHERE ' . implode( ' AND ', $where_clauses ) : '';
+
+    $query = "
+        SELECT p.id, p.product_name as name, 
+               COALESCE(c.name, p.category) as category, 
+               p.cost 
+        FROM $prod_table p
+        LEFT JOIN $cat_table c ON (p.category = c.id OR p.category = c.name)
+        $where_sql 
+        ORDER BY p.product_name ASC 
+        LIMIT 50
+    ";
+
+    if ( ! empty( $params ) ) {
+        $results = $wpdb->get_results( $wpdb->prepare( $query, $params ) );
+    } else {
+        $results = $wpdb->get_results( $query );
+    }
+
     wp_send_json_success( $results );
 }
 
@@ -1234,11 +1281,13 @@ function posdash_get_daily_logs() {
     
     $log_table  = $wpdb->prefix . 'fin_prod_log';
     $prod_table = $wpdb->prefix . 'products';
+    $cat_table  = $wpdb->prefix . 'prod_category';
     
     $results = $wpdb->get_results( $wpdb->prepare( "
-        SELECT l.id, p.product_name, p.category, l.product_id, l.quantity_produced, l.unit_labor_cost_snapshot, l.total_labor_payout, l.Created_dt, l.produce_date
+        SELECT l.id, p.product_name, COALESCE(c.name, p.category) as category, l.product_id, l.quantity_produced, l.unit_labor_cost_snapshot, l.total_labor_payout, l.Created_dt, l.produce_date
         FROM $log_table l
         LEFT JOIN $prod_table p ON l.product_id = p.id
+        LEFT JOIN $cat_table c ON (p.category = c.id OR p.category = c.name)
         WHERE l.employee_id = %d AND l.produce_date = %s
         ORDER BY l.id DESC
     ", $emp_id, $date ) );
