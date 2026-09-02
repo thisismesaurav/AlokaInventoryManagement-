@@ -157,6 +157,9 @@
                 if(res.success) {
                     const catSelect = document.getElementById('product_category');
                     res.data.forEach(cat => {
+                        if (cat.name && cat.name.trim().toLowerCase() === 'raw material') {
+                            return;
+                        }
                         const opt = document.createElement('option');
                         opt.value = cat.name;
                         opt.textContent = cat.name;

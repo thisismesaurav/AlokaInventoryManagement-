@@ -1208,9 +1208,13 @@ function posdash_search_products() {
 
     $prod_table = $wpdb->prefix . 'products';
     $cat_table  = $wpdb->prefix . 'prod_category';
+    $type_table = $wpdb->prefix . 'product_type';
 
     $where_clauses = array();
     $params        = array();
+
+    // Exclude Raw Material type products from Daily Production Log
+    $where_clauses[] = "(t.Type IS NULL OR t.Type != 'Raw Material') AND (p.product_type IS NULL OR p.product_type != 'Raw Material') AND (c.name IS NULL OR LOWER(TRIM(c.name)) != 'raw material')";
 
     // Term search (Name or ID)
     if ( ! empty( $term ) ) {
@@ -1242,7 +1246,7 @@ function posdash_search_products() {
         }
     }
 
-    $where_sql = ! empty( $where_clauses ) ? 'WHERE ' . implode( ' AND ', $where_clauses ) : '';
+    $where_sql = 'WHERE ' . implode( ' AND ', $where_clauses );
 
     $query = "
         SELECT p.id, p.product_name as name, 
@@ -1250,6 +1254,7 @@ function posdash_search_products() {
                p.cost 
         FROM $prod_table p
         LEFT JOIN $cat_table c ON (p.category = c.id OR p.category = c.name)
+        LEFT JOIN $type_table t ON p.product_type = t.id
         $where_sql 
         ORDER BY p.product_name ASC 
         LIMIT 50
