@@ -166,8 +166,8 @@
                     }
                     res.data.forEach(prod => {
                         const li = document.createElement('li');
-                        li.className = 'list-group-item list-group-item-action cursor-pointer d-flex justify-content-between align-items-center';
-                        li.innerHTML = `<div><strong class="text-primary">${prod.name}</strong> <small class="text-muted ml-2">(ID: ${prod.id})</small><br><small class="text-secondary">${prod.category}</small></div>`;
+                        li.className = 'list-group-item list-group-item-action cursor-pointer d-flex justify-content-between align-items-center py-2';
+                        li.innerHTML = `<div><strong class="text-primary font-weight-bold" style="font-size: 15px;">${prod.name}</strong></div>`;
                         li.onclick = () => openQuantityModal(prod);
                         prodResults.appendChild(li);
                     });
