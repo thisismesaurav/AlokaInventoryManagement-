@@ -2227,25 +2227,66 @@ function posdash_search_raw_material_products() {
     global $wpdb;
     $term = isset( $_GET['term'] ) ? sanitize_text_field( wp_unslash( $_GET['term'] ) ) : '';
     $cat  = isset( $_GET['category'] ) ? sanitize_text_field( wp_unslash( $_GET['category'] ) ) : '';
-    
-    $table = $wpdb->prefix . 'products';
-    $cat_query = "";
-    if ( ! empty( $cat ) ) {
-        $cat_query = $wpdb->prepare( " AND category = %s", $cat );
+
+    $prod_table = $wpdb->prefix . 'products';
+    $cat_table  = $wpdb->prefix . 'prod_category';
+    $type_table = $wpdb->prefix . 'product_type';
+
+    $where_clauses = array();
+    $params        = array();
+
+    // Must be Raw Material type (by type name, type ID, or raw field)
+    $where_clauses[] = "(t.Type = 'Raw Material' OR p.product_type = 'Raw Material' OR p.product_type IN (SELECT id FROM $type_table WHERE Type = 'Raw Material'))";
+
+    // Term search (Name or ID)
+    if ( ! empty( $term ) ) {
+        $like_term       = '%' . $wpdb->esc_like( $term ) . '%';
+        $where_clauses[] = "(p.product_name LIKE %s OR p.id LIKE %s)";
+        $params[]        = $like_term;
+        $params[]        = $like_term;
     }
-    
-    $results = $wpdb->get_results( $wpdb->prepare( "
-        SELECT p.id, p.product_name as name, p.category, p.cost 
-        FROM $table p
-        LEFT JOIN {$wpdb->prefix}product_type t ON p.product_type = t.id
-        WHERE (t.Type = 'Raw Material' OR p.product_type = 'Raw Material') 
-          AND (p.product_name LIKE %s OR p.id LIKE %s) 
-          $cat_query 
-        LIMIT 50", 
-        '%' . $wpdb->esc_like( $term ) . '%', 
-        '%' . $wpdb->esc_like( $term ) . '%' 
-    ) );
-    
+
+    // Category filter: match category ID, category name, or joined category name
+    if ( ! empty( $cat ) ) {
+        $cat_id = 0;
+        if ( is_numeric( $cat ) ) {
+            $cat_id = intval( $cat );
+        } else {
+            $cat_id = intval( $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $cat_table WHERE LOWER(TRIM(name)) = LOWER(TRIM(%s)) LIMIT 1", $cat ) ) );
+        }
+
+        if ( $cat_id > 0 ) {
+            $where_clauses[] = "(p.category = %s OR p.category = %d OR c.name = %s)";
+            $params[]        = strval( $cat_id );
+            $params[]        = $cat_id;
+            $params[]        = $cat;
+        } else {
+            $where_clauses[] = "(p.category = %s OR c.name = %s)";
+            $params[]        = $cat;
+            $params[]        = $cat;
+        }
+    }
+
+    $where_sql = 'WHERE ' . implode( ' AND ', $where_clauses );
+
+    $query = "
+        SELECT p.id, p.product_name as name, 
+               COALESCE(c.name, p.category) as category, 
+               p.cost 
+        FROM $prod_table p
+        LEFT JOIN $cat_table c ON (p.category = c.id OR p.category = c.name)
+        LEFT JOIN $type_table t ON p.product_type = t.id
+        $where_sql 
+        ORDER BY p.product_name ASC 
+        LIMIT 50
+    ";
+
+    if ( ! empty( $params ) ) {
+        $results = $wpdb->get_results( $wpdb->prepare( $query, $params ) );
+    } else {
+        $results = $wpdb->get_results( $query );
+    }
+
     wp_send_json_success( $results );
 }
 
@@ -2305,13 +2346,15 @@ function posdash_get_raw_material_logs() {
         $date = current_time( 'Y-m-d' );
     }
     
-    $raw_table = $wpdb->prefix . 'raw_material';
+    $raw_table  = $wpdb->prefix . 'raw_material';
     $prod_table = $wpdb->prefix . 'products';
+    $cat_table  = $wpdb->prefix . 'prod_category';
     
     $results = $wpdb->get_results( $wpdb->prepare( "
-        SELECT r.id, r.product_id, p.product_name, p.category, r.quantity, r.log_date, r.created_by, r.Created_dt
+        SELECT r.id, r.product_id, p.product_name, COALESCE(c.name, p.category) as category, r.quantity, r.log_date, r.created_by, r.Created_dt
         FROM $raw_table r
         LEFT JOIN $prod_table p ON r.product_id = p.id
+        LEFT JOIN $cat_table c ON (p.category = c.id OR p.category = c.name)
         WHERE r.log_date = %s
         ORDER BY r.id DESC
     ", $date ) );
