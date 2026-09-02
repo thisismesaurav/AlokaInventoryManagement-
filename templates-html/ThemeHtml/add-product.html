@@ -1,14 +1,47 @@
 <div class="content-page">
      <div class="container-fluid add-form-list">
+         <!-- ADD_PRODUCT_ALERT -->
          <div class="row">
-             <div class="col-sm-12">
-                 <div class="card">
-                     <div class="card-header d-flex justify-content-between">
+             <!-- Products Added Today List (Shown on Top) -->
+             <div class="col-sm-12 mb-4" id="products-added-today-card">
+                 <div class="card mb-0">
+                     <div class="card-header d-flex justify-content-between align-items-center">
                          <div class="header-title">
-                             <h4 class="card-title">Add Product</h4>
+                             <h4 class="card-title"><i class="las la-calendar-day mr-2 text-primary"></i>Products Added Today</h4>
+                         </div>
+                         <a href="list-product.html" class="btn btn-primary add-list"><i class="las la-list mr-2"></i>Go to Product List</a>
+                     </div>
+                     <div class="card-body">
+                         <div class="table-responsive rounded mb-0">
+                             <table class="table mb-0 tbl-server-info">
+                                 <thead class="bg-white text-uppercase">
+                                     <tr class="ligth ligth-data">
+                                         <th>Product Number</th>
+                                         <th>Product Type</th>
+                                         <th>Category</th>
+                                         <th>Product Name</th>
+                                         <th>Cost</th>
+                                     </tr>
+                                 </thead>
+                                 <tbody class="ligth-body">
+                                     <!-- ADDED_PRODUCTS_TBODY -->
+                                 </tbody>
+                             </table>
+                         </div>
+                     </div>
+                 </div>
+             </div>
+
+             <!-- Add Product Form Card (Below the List) -->
+             <div class="col-sm-12" id="add-product-card">
+                 <div class="card" id="add-product-form">
+                     <div class="card-header d-flex justify-content-between align-items-center">
+                         <div class="header-title">
+                             <h4 class="card-title"><i class="las la-plus-circle mr-2 text-primary"></i>Add Product</h4>
                          </div>
                      </div>
                      <div class="card-body">
+                         <!-- ADD_PRODUCT_ALERT -->
                          <form action="" method="POST" enctype="multipart/form-data" data-toggle="validator">
                              <input type="hidden" name="action_type" value="add_product">
                              <div class="row">
@@ -86,3 +119,78 @@
          <!-- Page end  -->
      </div>
 </div>
+
+<!-- Duplicate Product Modal Popup -->
+<div class="modal fade" id="duplicateProductModal" tabindex="-1" role="dialog" aria-labelledby="duplicateProductModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content style-modal" style="border-radius: 12px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.25);">
+            <div class="modal-header bg-danger text-white" style="border-top-left-radius: 12px; border-top-right-radius: 12px; padding: 15px 20px;">
+                <h5 class="modal-title text-white font-weight-bold" id="duplicateProductModalLabel">
+                    <i class="ri-error-warning-line mr-2" style="font-size: 22px; vertical-align: middle;"></i>Duplicate Product Error
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" style="opacity: 0.9;">
+                    <span aria-hidden="true" style="font-size: 24px;">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center p-4">
+                <div class="mb-3">
+                    <i class="ri-close-circle-line text-danger" style="font-size: 64px; line-height: 1;"></i>
+                </div>
+                <h4 class="text-dark font-weight-bold mb-2">Product Already Exists!</h4>
+                <p class="text-secondary font-size-14 mb-0">
+                    A product matching the selected <strong>Product Type</strong>, <strong>Category</strong>, and <strong>Name</strong> is already registered in the inventory.
+                </p>
+                <p class="text-muted small mt-2">
+                    Please modify the product details or update the existing product from the Product List.
+                </p>
+            </div>
+            <div class="modal-footer justify-content-center border-0 pb-4">
+                <button type="button" class="btn btn-danger px-4 font-weight-bold" data-dismiss="modal">OK, Got It</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        function scrollToTarget(targetId) {
+            var target = document.getElementById(targetId);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        var hash = window.location.hash;
+        var search = window.location.search;
+        var referrer = document.referrer || '';
+
+        // Auto-show Duplicate Product Error Modal if error=duplicate parameter is present
+        if (search.indexOf('error=duplicate') !== -1) {
+            var $jq = (typeof jQuery !== 'undefined') ? jQuery : (typeof $ !== 'undefined' ? $ : null);
+            if ($jq) {
+                $jq('#duplicateProductModal').modal('show');
+            } else {
+                setTimeout(function() {
+                    if (typeof $ !== 'undefined') {
+                        $('#duplicateProductModal').modal('show');
+                    } else {
+                        alert('Validation Failed: A product with the same Product Type, Category, and Name already exists in the inventory.');
+                    }
+                }, 300);
+            }
+        }
+
+        // If product added successfully -> scroll to "Products Added Today" list on top
+        if (search.indexOf('success=1') !== -1 || hash === '#products-added-today-card') {
+            setTimeout(function () {
+                scrollToTarget('products-added-today-card');
+            }, 150);
+        }
+        // If validation error or navigating from list-product -> scroll down to the Add Product form
+        else if (search.indexOf('error=') !== -1 || hash === '#add-product-form' || hash === '#add-product-card' || search.indexOf('scroll=form') !== -1 || (referrer.indexOf('list-product') !== -1)) {
+            setTimeout(function () {
+                scrollToTarget('add-product-card');
+            }, 150);
+        }
+    });
+</script>

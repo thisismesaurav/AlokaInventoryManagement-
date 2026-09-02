@@ -40,23 +40,34 @@
         }
     };
 
-    window.openQuickEditPriceModal = function (productId, productName, productCost, productCategory) {
+    window.openQuickEditPriceModal = function (elemOrId, productName, productCost, productCategory) {
         if (typeof window.currentIsAdmin !== 'undefined' && !window.currentIsAdmin) {
             alert('This action is only allowed for administrator.');
             return;
         }
 
+        var productId = elemOrId;
         var name = productName;
         var cost = productCost;
         var category = productCategory;
+
+        if (typeof elemOrId === 'object' && elemOrId !== null) {
+            var $el = (typeof jQuery !== 'undefined') ? jQuery(elemOrId) : null;
+            if ($el && $el.length) {
+                productId = $el.attr('data-id') || $el.data('id');
+                if (!name) name = $el.attr('data-name') || $el.data('name');
+                if (!cost && cost !== 0) cost = $el.attr('data-cost') || $el.data('cost');
+                if (!category) category = $el.attr('data-category') || $el.data('category');
+            }
+        }
 
         if (window.productList && window.productList.length) {
             for (var i = 0; i < window.productList.length; i++) {
                 if (window.productList[i].id == productId) {
                     var p = window.productList[i];
-                    name = p.product_name;
-                    cost = p.cost;
-                    category = p.category;
+                    if (!name) name = p.product_name;
+                    if (!cost && cost !== 0) cost = p.cost;
+                    if (!category) category = p.category_name || p.category;
                     break;
                 }
             }
@@ -90,7 +101,7 @@
                     <div>
                         <h4 class="mb-3">Product List</h4>
                     </div>
-                    <a href="add-product.html" class="btn btn-primary add-list"><i class="las la-plus mr-3"></i>Add
+                    <a href="add-product.html#add-product-form" class="btn btn-primary add-list"><i class="las la-plus mr-3"></i>Add
                         Product</a>
                 </div>
             </div>
@@ -229,7 +240,7 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <form id="quick-edit-price-form">
+                <form id="quick-edit-price-form" action="" method="POST" onsubmit="return false;">
                     <input type="hidden" id="quick_price_product_id">
                     <div class="modal-body">
                         <div class="form-group mb-3">
@@ -261,13 +272,40 @@
                 jQuery(document).ready(function ($) {
                     var table = $('.data-tables').DataTable();
 
+                    // 1. Restore filter state from sessionStorage on page load / init
+                    var savedType = sessionStorage.getItem('list_prod_filter_type');
+                    var savedCat = sessionStorage.getItem('list_prod_filter_cat');
+
+                    if (savedType) {
+                        $('#filter-product-type').val(savedType);
+                        table.column(1).search('^' + $.fn.dataTable.util.escapeRegex(savedType) + '$', true, false);
+                    }
+                    if (savedCat) {
+                        $('#filter-category').val(savedCat);
+                        table.column(2).search('^' + $.fn.dataTable.util.escapeRegex(savedCat) + '$', true, false);
+                    }
+                    if (savedType || savedCat) {
+                        table.draw(false);
+                    }
+
+                    // 2. Filter change handlers with persistent state
                     $('#filter-product-type').on('change', function () {
                         var val = $(this).val();
+                        if (val) {
+                            sessionStorage.setItem('list_prod_filter_type', val);
+                        } else {
+                            sessionStorage.removeItem('list_prod_filter_type');
+                        }
                         table.column(1).search(val ? '^' + $.fn.dataTable.util.escapeRegex(val) + '$' : '', true, false).draw();
                     });
 
                     $('#filter-category').on('change', function () {
                         var val = $(this).val();
+                        if (val) {
+                            sessionStorage.setItem('list_prod_filter_cat', val);
+                        } else {
+                            sessionStorage.removeItem('list_prod_filter_cat');
+                        }
                         table.column(2).search(val ? '^' + $.fn.dataTable.util.escapeRegex(val) + '$' : '', true, false).draw();
                     });
 
@@ -318,18 +356,47 @@
                                 cost: newPrice
                             },
                             success: function (response) {
+                                $btn.prop('disabled', false).html(origText);
                                 if (response.success) {
                                     alert('Product price updated successfully!');
                                     $('#quick-edit-price-modal').modal('hide');
-                                    window.location.reload();
+
+                                    // 1. Update in-memory productList
+                                    if (window.productList && window.productList.length) {
+                                        for (var i = 0; i < window.productList.length; i++) {
+                                            if (window.productList[i].id == prodId) {
+                                                window.productList[i].cost = newPrice;
+                                                break;
+                                            }
+                                        }
+                                    }
+
+                                    // 2. Dynamically update DOM table row & DataTables cell without page reload
+                                    var formattedPrice = '₹' + newPrice.toFixed(2);
+                                    var $btnEdit = $('.btn-edit-price[data-id="' + prodId + '"]');
+                                    if ($btnEdit.length) {
+                                        $btnEdit.attr('data-cost', newPrice);
+                                        $btnEdit.data('cost', newPrice);
+                                        var $tr = $btnEdit.closest('tr');
+                                        $tr.find('td').eq(4).html(formattedPrice);
+                                        
+                                        if (typeof jQuery !== 'undefined' && $.fn.DataTable && $('.data-tables').length) {
+                                            try {
+                                                var dtTable = $('.data-tables').DataTable();
+                                                var cellNode = $tr.find('td').get(4);
+                                                if (cellNode && dtTable && dtTable.cell) {
+                                                    dtTable.cell(cellNode).data(formattedPrice).draw(false);
+                                                }
+                                            } catch (dtErr) {}
+                                        }
+                                    }
                                 } else {
                                     alert('Error: ' + (response.data || 'Failed to update price.'));
-                                    $btn.prop('disabled', false).html(origText);
                                 }
                             },
                             error: function (xhr, status, error) {
-                                alert('Server error occurred while updating price: ' + error);
                                 $btn.prop('disabled', false).html(origText);
+                                alert('Server error occurred while updating price: ' + error);
                             }
                         });
                     });

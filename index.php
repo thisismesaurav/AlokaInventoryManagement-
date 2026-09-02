@@ -168,71 +168,44 @@ if ( ! function_exists( 'process_posdash_html_content' ) ) {
 		// A. Replace assets path (universal replacement for relative paths)
 		$content = preg_replace( '/(\.\.\/)+assets\//i', $theme_uri . '/assets/', $content );
 
-		// B. Replace index.html links to the WordPress homepage
-		$content = preg_replace( '/(\.\.\/)+(backend|ThemeHtml)\/index\.html/i', $home_url, $content );
-		$content = preg_replace( '/index\.html/i', $home_url, $content );
-
-		// C. Replace backend HTML links to clean paths /XXX
-		$content = preg_replace_callback( '/(\.\.\/)+backend\/([a-zA-Z0-9_-]+)\.html/i', function( $matches ) use ( $home_url ) {
-			if ( $matches[2] === 'index' ) {
-				return $home_url;
-			}
-			$slug = $matches[2];
-			if ( strpos( $slug, 'page-' ) === 0 ) {
-				$slug = substr( $slug, 5 );
-			}
-			return $home_url . $slug;
+		// B. Replace index.html links in href/action/src attributes
+		$content = preg_replace_callback( '/(href|action|src)=(["\'])([^"\'\s>]*?)index\.html\2/i', function( $matches ) use ( $home_url ) {
+			return $matches[1] . '=' . $matches[2] . $home_url . $matches[2];
 		}, $content );
 
-		// C2. Replace ThemeHtml HTML links to clean paths /XXX
-		$content = preg_replace_callback( '/(\.\.\/)+ThemeHtml\/([a-zA-Z0-9_-]+)\.html/i', function( $matches ) use ( $home_url ) {
-			if ( $matches[2] === 'index' ) {
-				return $home_url;
-			}
-			$slug = $matches[2];
-			if ( strpos( $slug, 'page-' ) === 0 ) {
-				$slug = substr( $slug, 5 );
-			}
-			return $home_url . $slug;
+		// C. Replace backend HTML links in href/action/src attributes
+		$content = preg_replace_callback( '/(href|action|src)=(["\'])([^"\'\s>]*?)(\.\.\/)+backend\/([a-zA-Z0-9_-]+)\.html\2/i', function( $matches ) use ( $home_url ) {
+			$slug = ( $matches[5] === 'index' ) ? '' : ( strpos( $matches[5], 'page-' ) === 0 ? substr( $matches[5], 5 ) : $matches[5] );
+			return $matches[1] . '=' . $matches[2] . $home_url . $slug . $matches[2];
 		}, $content );
 
-		// D. Replace app HTML links to clean paths /XXX
-		$content = preg_replace_callback( '/(\.\.\/)+app\/([a-zA-Z0-9_-]+)\.html/i', function( $matches ) use ( $home_url ) {
-			$slug = $matches[2];
-			if ( strpos( $slug, 'page-' ) === 0 ) {
-				$slug = substr( $slug, 5 );
-			}
-			return $home_url . $slug;
+		// C2. Replace ThemeHtml HTML links in href/action/src attributes
+		$content = preg_replace_callback( '/(href|action|src)=(["\'])([^"\'\s>]*?)(\.\.\/)+ThemeHtml\/([a-zA-Z0-9_-]+)\.html\2/i', function( $matches ) use ( $home_url ) {
+			$slug = ( $matches[5] === 'index' ) ? '' : ( strpos( $matches[5], 'page-' ) === 0 ? substr( $matches[5], 5 ) : $matches[5] );
+			return $matches[1] . '=' . $matches[2] . $home_url . $slug . $matches[2];
 		}, $content );
 
-		// E. Handle sibling HTML links (e.g. "page-list-product.html" without relative path)
-		if ( 'backend' === $current_dir || 'ThemeHtml' === $current_dir ) {
-			$content = preg_replace_callback( '/(?<![\/a-zA-Z0-9_-])([a-zA-Z0-9_-]+)\.html/i', function( $matches ) use ( $home_url ) {
-				if ( $matches[1] === 'index' ) {
-					return $home_url;
-				}
-				// Skip if it matches asset/vendor stuff
-				if ( in_array( $matches[1], array( 'min', 'css', 'js', 'html' ), true ) ) {
-					return $matches[0];
-				}
-				$slug = $matches[1];
-				if ( strpos( $slug, 'page-' ) === 0 ) {
-					$slug = substr( $slug, 5 );
-				}
-				return $home_url . $slug;
-			}, $content );
-		} elseif ( 'app' === $current_dir ) {
-			$content = preg_replace_callback( '/(?<![\/a-zA-Z0-9_-])([a-zA-Z0-9_-]+)\.html/i', function( $matches ) use ( $home_url ) {
-				if ( in_array( $matches[1], array( 'min', 'css', 'js', 'html' ), true ) ) {
-					return $matches[0];
-				}
-				$slug = $matches[1];
-				if ( strpos( $slug, 'page-' ) === 0 ) {
-					$slug = substr( $slug, 5 );
-				}
-				return $home_url . $slug;
-			}, $content );
-		}
+		// D. Replace app HTML links in href/action/src attributes
+		$content = preg_replace_callback( '/(href|action|src)=(["\'])([^"\'\s>]*?)(\.\.\/)+app\/([a-zA-Z0-9_-]+)\.html\2/i', function( $matches ) use ( $home_url ) {
+			$slug = ( $matches[5] === 'index' ) ? '' : ( strpos( $matches[5], 'page-' ) === 0 ? substr( $matches[5], 5 ) : $matches[5] );
+			return $matches[1] . '=' . $matches[2] . $home_url . $slug . $matches[2];
+		}, $content );
+
+		// E. Handle sibling HTML links in href/action attributes (e.g. href="page-list-product.html#add-product-form" or href="list-product.html")
+		$content = preg_replace_callback( '/(href|action)=(["\'])(?!\s*http|\s*#|\s*javascript:)([^"\'\s>#?]+)\.html([^"\'\s>]*)\2/i', function( $matches ) use ( $home_url ) {
+			$attr_name = $matches[1];
+			$quote     = $matches[2];
+			$filename  = basename( $matches[3] );
+			$suffix    = $matches[4]; // preserve #hash or ?query
+			if ( $filename === 'index' ) {
+				return $attr_name . '=' . $quote . $home_url . $suffix . $quote;
+			}
+			if ( in_array( $filename, array( 'min', 'css', 'js', 'html' ), true ) ) {
+				return $matches[0];
+			}
+			$slug = ( strpos( $filename, 'page-' ) === 0 ) ? substr( $filename, 5 ) : $filename;
+			return $attr_name . '=' . $quote . $home_url . $slug . $suffix . $quote;
+		}, $content );
 
 		return $content;
 	}
@@ -582,7 +555,7 @@ if ( strpos( $view, 'list-product' ) !== false ) {
             $tbody .= '<a class="badge bg-success mr-2 btn-edit-product" data-toggle="tooltip" data-placement="top" title="Edit" href="#" data-id="' . intval( $product->id ) . '" onclick="window.openEditProductModal(' . intval( $product->id ) . '); return false;"><i class="ri-pencil-line mr-0"></i></a>';
             
             // Quick Edit Price Button
-            $tbody .= '<a class="badge bg-info mr-2 btn-edit-price" data-toggle="tooltip" data-placement="top" title="Edit Price" href="#" data-id="' . intval( $product->id ) . '" data-name="' . esc_attr( $product->product_name ) . '" data-category="' . esc_attr( $cat_display ) . '" data-cost="' . esc_attr( $product->cost ) . '" onclick="window.openQuickEditPriceModal(' . intval( $product->id ) . '); return false;"><i class="ri-price-tag-3-line mr-0"></i></a>';
+            $tbody .= '<a class="badge bg-info mr-2 btn-edit-price" data-toggle="tooltip" data-placement="top" title="Edit Price" href="#" data-id="' . intval( $product->id ) . '" data-name="' . esc_attr( $product->product_name ) . '" data-category="' . esc_attr( $cat_display ) . '" data-cost="' . esc_attr( $product->cost ) . '" onclick="window.openQuickEditPriceModal(this); return false;"><i class="ri-price-tag-3-line mr-0"></i></a>';
             
             // Delete Row Button (Secure with Nonce)
             $delete_url = wp_nonce_url(
@@ -1183,6 +1156,17 @@ if ( strpos( $view, 'report-salary' ) !== false ) {
 if ( strpos( $view, 'add-product' ) !== false ) {
     global $wpdb;
     
+    // Check for success banner or error banner
+    if ( isset( $_GET['success'] ) && '1' === $_GET['success'] ) {
+        $alert_html = '<div class="alert alert-success alert-dismissible fade show mb-4" role="alert" style="font-size: 15px;"><i class="ri-checkbox-circle-line mr-2" style="font-size: 18px; vertical-align: middle;"></i><strong>Success:</strong> Product added successfully! You can add another product below.<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>';
+        $content = str_replace( '<!-- ADD_PRODUCT_ALERT -->', $alert_html, $content );
+    } elseif ( isset( $_GET['error'] ) && 'duplicate' === $_GET['error'] ) {
+        $alert_html = '<div class="alert alert-danger alert-dismissible fade show mb-4" role="alert" style="font-size: 15px; border-left: 5px solid #dc3545; background-color: #f8d7da; color: #721c24;"><i class="ri-error-warning-fill mr-2" style="font-size: 20px; vertical-align: middle;"></i><strong>Validation Failed:</strong> A product with the same Product Type, Category, and Name already exists in the inventory.<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>';
+        $content = str_replace( '<!-- ADD_PRODUCT_ALERT -->', $alert_html, $content );
+    } else {
+        $content = str_replace( '<!-- ADD_PRODUCT_ALERT -->', '', $content );
+    }
+
     // Fetch Categories
     $categories = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}prod_category ORDER BY name ASC" );
     $cat_options = '';
@@ -1218,6 +1202,36 @@ if ( strpos( $view, 'add-product' ) !== false ) {
         function() use ($type_options) { return '<select name="product_type" class="selectpicker form-control" data-style="py-0">' . $type_options . '</select>'; },
         $content
     );
+
+    // Fetch Products Added Today to display in table list on top of form
+    $today = current_time( 'Y-m-d' );
+    $recent_products = $wpdb->get_results( $wpdb->prepare( "
+        SELECT p.*, t.Type as type_name, c.name as category_name
+        FROM {$wpdb->prefix}products p
+        LEFT JOIN {$wpdb->prefix}product_type t ON p.product_type = t.id
+        LEFT JOIN {$wpdb->prefix}prod_category c ON (p.category = c.id OR p.category = c.name)
+        WHERE DATE(p.Created_dt) = %s
+        ORDER BY p.id DESC
+    ", $today ) );
+    $recent_tbody = '';
+    if ( ! empty( $recent_products ) ) {
+        foreach ( $recent_products as $rp ) {
+            $cost = number_format( (float) $rp->cost, 2 );
+            $cat_display = ! empty( $rp->category_name ) ? $rp->category_name : $rp->category;
+            $type_display = ! empty( $rp->type_name ) ? $rp->type_name : $rp->product_type;
+
+            $recent_tbody .= '<tr>';
+            $recent_tbody .= '<td class="text-muted" style="font-size:12px;">#' . esc_html( $rp->id ) . '</td>';
+            $recent_tbody .= '<td>' . esc_html( $type_display ) . '</td>';
+            $recent_tbody .= '<td>' . esc_html( $cat_display ) . '</td>';
+            $recent_tbody .= '<td>' . esc_html( $rp->product_name ) . '</td>';
+            $recent_tbody .= '<td>₹' . esc_html( $cost ) . '</td>';
+            $recent_tbody .= '</tr>';
+        }
+    } else {
+        $recent_tbody .= '<tr><td colspan="5" class="text-center text-muted">No products added today yet.</td></tr>';
+    }
+    $content = str_replace( '<!-- ADDED_PRODUCTS_TBODY -->', $recent_tbody, $content );
 }
 
 // 3.5 Inject Login and Registration alerts/messages

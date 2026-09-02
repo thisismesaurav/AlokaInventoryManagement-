@@ -508,13 +508,51 @@ function inventory_management_handle_submissions() {
     $action_type = sanitize_text_field( wp_unslash( $_POST['action_type'] ) );
 
     if ( 'add_product' === $action_type ) {
-        $product_type = isset( $_POST['product_type'] ) ? intval( sanitize_text_field( wp_unslash( $_POST['product_type'] ) ) ) : 0;
-        $product_name = isset( $_POST['product_name'] ) ? sanitize_text_field( wp_unslash( $_POST['product_name'] ) ) : '';
-        $category_raw = isset( $_POST['category'] ) ? sanitize_text_field( wp_unslash( $_POST['category'] ) ) : '';
-        $category = is_numeric( $category_raw ) ? intval( $category_raw ) : $category_raw;
-        $cost = isset( $_POST['cost'] ) ? floatval( sanitize_text_field( wp_unslash( $_POST['cost'] ) ) ) : 0.00;
-        $quantity = 1.00;
-        $description = isset( $_POST['description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['description'] ) ) : '';
+        $product_type_raw = isset( $_POST['product_type'] ) ? sanitize_text_field( wp_unslash( $_POST['product_type'] ) ) : '';
+        $product_type     = is_numeric( $product_type_raw ) ? intval( $product_type_raw ) : $product_type_raw;
+        $product_name     = isset( $_POST['product_name'] ) ? sanitize_text_field( wp_unslash( $_POST['product_name'] ) ) : '';
+        $category_raw     = isset( $_POST['category'] ) ? sanitize_text_field( wp_unslash( $_POST['category'] ) ) : '';
+        $category         = is_numeric( $category_raw ) ? intval( $category_raw ) : $category_raw;
+        $cost             = isset( $_POST['cost'] ) ? floatval( sanitize_text_field( wp_unslash( $_POST['cost'] ) ) ) : 0.00;
+        $quantity         = 1.00;
+        $description      = isset( $_POST['description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['description'] ) ) : '';
+
+        // Uniqueness validation check: Product Type + Category + Name
+        $matching_products = $wpdb->get_results( $wpdb->prepare( "
+            SELECT p.id, p.product_type, p.category, p.product_name,
+                   t.Type as type_name, c.name as category_name
+            FROM {$wpdb->prefix}products p
+            LEFT JOIN {$wpdb->prefix}product_type t ON p.product_type = t.id
+            LEFT JOIN {$wpdb->prefix}prod_category c ON (p.category = c.id OR p.category = c.name)
+            WHERE LOWER(TRIM(p.product_name)) = LOWER(TRIM(%s))
+        ", $product_name ) );
+
+        $is_duplicate = false;
+        if ( ! empty( $matching_products ) ) {
+            foreach ( $matching_products as $mp ) {
+                $type_matches = (
+                    strval( $mp->product_type ) === strval( $product_type_raw ) ||
+                    strval( $mp->product_type ) === strval( $product_type ) ||
+                    ( ! empty( $mp->type_name ) && strcasecmp( trim( $mp->type_name ), trim( $product_type_raw ) ) === 0 )
+                );
+
+                $cat_matches = (
+                    strval( $mp->category ) === strval( $category_raw ) ||
+                    strval( $mp->category ) === strval( $category ) ||
+                    ( ! empty( $mp->category_name ) && strcasecmp( trim( $mp->category_name ), trim( $category_raw ) ) === 0 )
+                );
+
+                if ( $type_matches && $cat_matches ) {
+                    $is_duplicate = true;
+                    break;
+                }
+            }
+        }
+
+        if ( $is_duplicate ) {
+            wp_redirect( home_url( '/add-product?error=duplicate' ) );
+            exit;
+        }
 
         // Handle File Upload
         $image_path = 'assets/images/table/product/01.jpg'; // default
@@ -550,7 +588,7 @@ function inventory_management_handle_submissions() {
             )
         );
 
-        wp_redirect( home_url( '/list-product' ) );
+        wp_redirect( home_url( '/add-product?success=1' ) );
         exit;
     }
 
@@ -1225,6 +1263,7 @@ add_action( 'wp_ajax_save_production_log', 'posdash_save_production_log' );
 // H1: nopriv REMOVED - save actions require login
 
 add_action( 'wp_ajax_update_product_cost', 'posdash_update_product_cost' );
+add_action( 'wp_ajax_nopriv_update_product_cost', 'posdash_update_product_cost' );
 function posdash_update_product_cost() {
     if ( ! is_user_logged_in() ) {
         wp_send_json_error( 'Authentication required.', 403 );
@@ -1258,14 +1297,16 @@ function posdash_update_product_cost() {
             'Last_upd_dt'     => current_time( 'mysql' ),
             'Last_updated_by' => $username,
         ),
-        array( 'id' => $product_id )
+        array( 'id' => $product_id ),
+        array( '%f', '%s', '%s' ),
+        array( '%d' )
     );
 
     if ( false !== $updated ) {
         wp_send_json_success( array(
             'message'    => 'Price updated successfully.',
             'product_id' => $product_id,
-            'new_cost'   => $cost,
+            'new_cost'   => number_format( $cost, 2, '.', '' ),
         ) );
     } else {
         wp_send_json_error( 'Failed to update database record.' );
