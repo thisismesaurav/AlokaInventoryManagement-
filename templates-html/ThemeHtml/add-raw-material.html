@@ -114,12 +114,30 @@
             .then(res => {
                 if(res.success) {
                     const catSelect = document.getElementById('product_category');
+                    let rawMatFound = false;
                     res.data.forEach(cat => {
                         const opt = document.createElement('option');
                         opt.value = cat.name;
                         opt.textContent = cat.name;
+                        if (cat.name.toLowerCase() === 'raw material') {
+                            rawMatFound = true;
+                        }
                         catSelect.appendChild(opt);
                     });
+
+                    // Ensure 'Raw Material' option exists if not in category list
+                    if (!rawMatFound) {
+                        const opt = document.createElement('option');
+                        opt.value = 'Raw Material';
+                        opt.textContent = 'Raw Material';
+                        catSelect.appendChild(opt);
+                    }
+
+                    // Always keep "Raw Material" as default selected category filter
+                    catSelect.value = 'Raw Material';
+
+                    // Fetch raw material products for the default category immediately
+                    fetchProducts('', 'Raw Material');
                 }
             });
 
