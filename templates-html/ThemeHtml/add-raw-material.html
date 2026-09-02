@@ -51,6 +51,7 @@
                                                 <th>Product ID</th>
                                                 <th>Product Name</th>
                                                 <th>Category</th>
+                                                <th>Color</th>
                                                 <th>Log Date</th>
                                                 <th>Quantity Logged</th>
                                                 <th>Logged By</th>
@@ -85,6 +86,29 @@
                 <h5 id="modal_product_name" class="text-dark font-weight-bold mb-1"></h5>
                 <p class="text-muted mb-4 badge badge-light border">Product ID: <span id="modal_product_id"></span></p>
                 
+                <div class="form-group mb-3">
+                    <label class="font-weight-bold text-dark h6">Select Color</label>
+                    <div class="input-group">
+                        <select id="modal_color" class="form-control form-control-lg border-primary">
+                            <option value="">-- Select Color --</option>
+                        </select>
+                        <div class="input-group-append">
+                            <button type="button" class="btn btn-outline-primary font-weight-bold" id="btn_toggle_add_color">
+                                <i class="ri-add-line mr-1"></i>New Color
+                            </button>
+                        </div>
+                    </div>
+                    <div id="add_color_wrapper" class="mt-2" style="display: none;">
+                        <div class="input-group">
+                            <input type="text" id="new_color_input" class="form-control" placeholder="Type new color name (e.g. Red, Navy)..." autocomplete="off">
+                            <div class="input-group-append">
+                                <button type="button" class="btn btn-success font-weight-bold" id="btn_save_new_color">Save Color</button>
+                                <button type="button" class="btn btn-light" id="btn_cancel_add_color">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-group mb-0">
                     <label class="font-weight-bold text-dark h6">Enter Quantity</label>
                     <input type="number" id="modal_quantity" class="form-control form-control-lg text-center" min="1" value="1" style="font-size: 24px; font-weight: bold;">
@@ -103,6 +127,27 @@
     // AJAX URL for WordPress environment using reliable global variable
     const ajaxurl = window.posdashAjaxUrl;
     let selectedProduct = null;
+
+    // --- Load Master Colors ---
+    function loadColors(selectedColor = '') {
+        fetch(`${ajaxurl}?action=get_raw_material_colors`)
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    const colorSelect = document.getElementById('modal_color');
+                    colorSelect.innerHTML = '<option value="">-- Select Color --</option>';
+                    res.data.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c;
+                        opt.textContent = c;
+                        colorSelect.appendChild(opt);
+                    });
+                    if (selectedColor) {
+                        colorSelect.value = selectedColor;
+                    }
+                }
+            });
+    }
 
     // --- Load Categories Dynamically ---
     document.addEventListener('DOMContentLoaded', function() {
@@ -214,6 +259,57 @@
         }
     });
 
+    // --- New Color Handlers ---
+    document.getElementById('btn_toggle_add_color').addEventListener('click', function() {
+        document.getElementById('add_color_wrapper').style.display = 'block';
+        document.getElementById('new_color_input').focus();
+    });
+
+    document.getElementById('btn_cancel_add_color').addEventListener('click', function() {
+        document.getElementById('add_color_wrapper').style.display = 'none';
+        document.getElementById('new_color_input').value = '';
+    });
+
+    document.getElementById('btn_save_new_color').addEventListener('click', function() {
+        const newColor = document.getElementById('new_color_input').value.trim();
+        if (!newColor) {
+            alert('Please enter a color name.');
+            return;
+        }
+        const btn = this;
+        const origText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+
+        const formData = new URLSearchParams();
+        formData.append('action', 'add_raw_material_color');
+        formData.append('color_name', newColor);
+        formData.append('nonce', window.posdashNonce);
+
+        fetch(ajaxurl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData.toString()
+        })
+        .then(r => r.json())
+        .then(res => {
+            btn.disabled = false;
+            btn.innerHTML = origText;
+            if (res.success && res.data && res.data.color) {
+                document.getElementById('new_color_input').value = '';
+                document.getElementById('add_color_wrapper').style.display = 'none';
+                loadColors(res.data.color);
+            } else {
+                alert('Error adding color: ' + (res.data || 'Unknown error'));
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = origText;
+            alert('Server error occurred while saving color.');
+        });
+    });
+
     // --- Modal Logic ---
     function openQuantityModal(prod) {
         selectedProduct = prod;
@@ -224,7 +320,11 @@
         document.getElementById('modal_product_id').innerText = prod.id;
         document.getElementById('modal_quantity').value = 1;
         document.getElementById('modal_quantity').classList.remove('is-invalid');
+        document.getElementById('add_color_wrapper').style.display = 'none';
+        document.getElementById('new_color_input').value = '';
         
+        loadColors();
+
         $('#quantityModal').modal('show');
     }
 
@@ -234,6 +334,7 @@
             document.getElementById('modal_quantity').classList.add('is-invalid');
             return;
         }
+        const colorVal = document.getElementById('modal_color').value;
         
         const btn = this;
         const originalText = btn.innerHTML;
@@ -243,6 +344,7 @@
         const formData = new URLSearchParams();
         formData.append('action', 'save_raw_material_log');
         formData.append('product_id', selectedProduct.id);
+        formData.append('color', colorVal);
         formData.append('quantity', qty);
         formData.append('log_date', document.getElementById('log_date').value);
         formData.append('nonce', window.posdashNonce);
@@ -285,7 +387,7 @@
                     const tbody = document.querySelector('#raw_log_table tbody');
                     tbody.innerHTML = '';
                     if(res.data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No raw material logs found for this date.</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No raw material logs found for this date.</td></tr>';
                         return;
                     }
                     res.data.forEach(log => {
@@ -294,6 +396,7 @@
                             <td><span class="text-muted font-weight-bold">#${log.product_id}</span></td>
                             <td class="font-weight-bold text-dark">${log.product_name}</td>
                             <td>${log.category}</td>
+                            <td><span class="badge badge-info px-2 py-1" style="font-size:12px;">${log.color || '-'}</span></td>
                             <td>${log.log_date}</td>
                             <td class="text-center"><span class="badge badge-success px-3 py-2" style="font-size: 14px;">${log.quantity} Units</span></td>
                             <td>${log.created_by}</td>

@@ -2295,6 +2295,96 @@ function posdash_search_raw_material_products() {
     wp_send_json_success( $results );
 }
 
+/**
+ * Ensure wp_prod_color table exists and wp_raw_material has color column
+ */
+function posdash_ensure_color_schema() {
+    global $wpdb;
+    $charset_collate = $wpdb->get_charset_collate();
+
+    // 1. Create wp_prod_color master table if missing
+    $table_color = $wpdb->prefix . 'prod_color';
+    $sql_color = "CREATE TABLE $table_color (
+        id bigint(20) NOT NULL AUTO_INCREMENT,
+        name varchar(100) NOT NULL,
+        Created_dt datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+        PRIMARY KEY  (id),
+        UNIQUE KEY uq_name (name)
+    ) $charset_collate;";
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta( $sql_color );
+
+    // Seed default colors if empty
+    $count = intval( $wpdb->get_var( "SELECT COUNT(*) FROM $table_color" ) );
+    if ( $count === 0 ) {
+        $default_colors = array( 'Black', 'Blue', 'Green', 'Grey', 'Maroon', 'Navy', 'Orange', 'Pink', 'Purple', 'Red', 'White', 'Yellow' );
+        foreach ( $default_colors as $color ) {
+            $wpdb->insert(
+                $table_color,
+                array(
+                    'name'       => $color,
+                    'Created_dt' => current_time( 'mysql' ),
+                )
+            );
+        }
+    }
+
+    // 2. Ensure color column exists in wp_raw_material table
+    $table_raw_material = $wpdb->prefix . 'raw_material';
+    $col_check = $wpdb->get_results( "SHOW COLUMNS FROM $table_raw_material LIKE 'color'" );
+    if ( empty( $col_check ) ) {
+        $wpdb->query( "ALTER TABLE $table_raw_material ADD COLUMN color varchar(100) DEFAULT NULL AFTER product_id" );
+    }
+}
+add_action( 'init', 'posdash_ensure_color_schema' );
+
+add_action( 'wp_ajax_get_raw_material_colors', 'posdash_get_raw_material_colors' );
+function posdash_get_raw_material_colors() {
+    if ( ! is_user_logged_in() ) {
+        wp_send_json_error( 'Authentication required.', 403 );
+        return;
+    }
+    global $wpdb;
+    $table = $wpdb->prefix . 'prod_color';
+    $colors = $wpdb->get_col( "SELECT name FROM $table ORDER BY name ASC" );
+    wp_send_json_success( $colors ? $colors : array() );
+}
+
+add_action( 'wp_ajax_add_raw_material_color', 'posdash_add_raw_material_color' );
+function posdash_add_raw_material_color() {
+    if ( ! is_user_logged_in() ) {
+        wp_send_json_error( 'Authentication required.', 403 );
+        return;
+    }
+    check_ajax_referer( 'posdash_ajax_action', 'nonce' );
+    global $wpdb;
+    $raw_name = isset( $_POST['color_name'] ) ? sanitize_text_field( wp_unslash( $_POST['color_name'] ) ) : '';
+    $name = trim( ucwords( strtolower( $raw_name ) ) );
+
+    if ( empty( $name ) ) {
+        wp_send_json_error( 'Color name cannot be empty.' );
+        return;
+    }
+
+    $table = $wpdb->prefix . 'prod_color';
+    $existing = $wpdb->get_var( $wpdb->prepare( "SELECT name FROM $table WHERE LOWER(TRIM(name)) = LOWER(TRIM(%s)) LIMIT 1", $name ) );
+
+    if ( ! $existing ) {
+        $wpdb->insert(
+            $table,
+            array(
+                'name'       => $name,
+                'Created_dt' => current_time( 'mysql' ),
+            )
+        );
+    } else {
+        $name = $existing;
+    }
+
+    wp_send_json_success( array( 'color' => $name ) );
+}
+
 add_action( 'wp_ajax_save_raw_material_log', 'posdash_save_raw_material_log' );
 // H1: nopriv REMOVED - save actions require login
 function posdash_save_raw_material_log() {
@@ -2306,8 +2396,9 @@ function posdash_save_raw_material_log() {
     check_ajax_referer( 'posdash_ajax_action', 'nonce' );
     global $wpdb;
     $prod_id = isset( $_POST['product_id'] ) ? intval( wp_unslash( $_POST['product_id'] ) ) : 0;
-    $qty = isset( $_POST['quantity'] ) ? floatval( wp_unslash( $_POST['quantity'] ) ) : 0.00;
-    $date = isset( $_POST['log_date'] ) ? sanitize_text_field( wp_unslash( $_POST['log_date'] ) ) : '';
+    $qty     = isset( $_POST['quantity'] ) ? floatval( wp_unslash( $_POST['quantity'] ) ) : 0.00;
+    $color   = isset( $_POST['color'] ) ? sanitize_text_field( wp_unslash( $_POST['color'] ) ) : '';
+    $date    = isset( $_POST['log_date'] ) ? sanitize_text_field( wp_unslash( $_POST['log_date'] ) ) : '';
     // M1: Validate date format Y-m-d
     if ( empty( $date ) || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) || ! strtotime( $date ) ) {
         $date = current_time( 'Y-m-d' );
@@ -2326,6 +2417,7 @@ function posdash_save_raw_material_log() {
         array(
             'log_date'        => $date,
             'product_id'      => $prod_id,
+            'color'           => $color,
             'quantity'        => $qty,
             'Created_dt'      => current_time( 'mysql' ),
             'Last_upd_dt'     => current_time( 'mysql' ),
@@ -2356,7 +2448,7 @@ function posdash_get_raw_material_logs() {
     $cat_table  = $wpdb->prefix . 'prod_category';
     
     $results = $wpdb->get_results( $wpdb->prepare( "
-        SELECT r.id, r.product_id, p.product_name, COALESCE(c.name, p.category) as category, r.quantity, r.log_date, r.created_by, r.Created_dt
+        SELECT r.id, r.product_id, p.product_name, COALESCE(c.name, p.category) as category, r.color, r.quantity, r.log_date, r.created_by, r.Created_dt
         FROM $raw_table r
         LEFT JOIN $prod_table p ON r.product_id = p.id
         LEFT JOIN $cat_table c ON (p.category = c.id OR p.category = c.name)

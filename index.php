@@ -815,11 +815,13 @@ if ( strpos( $view, 'list-raw-material' ) !== false ) {
     global $wpdb;
     $raw_table = $wpdb->prefix . 'raw_material';
     $prod_table = $wpdb->prefix . 'products';
+    $cat_table  = $wpdb->prefix . 'prod_category';
 
     $logs = $wpdb->get_results( "
-        SELECT r.id, r.product_id, p.product_name, p.category, r.quantity, r.log_date, r.created_by, r.Created_dt
+        SELECT r.id, r.product_id, p.product_name, COALESCE(c.name, p.category) as category, r.color, r.quantity, r.log_date, r.created_by, r.Created_dt
         FROM $raw_table r
         LEFT JOIN $prod_table p ON r.product_id = p.id
+        LEFT JOIN $cat_table c ON (p.category = c.id OR p.category = c.name)
         ORDER BY r.log_date DESC, r.id DESC
     " );
 
@@ -828,19 +830,21 @@ if ( strpos( $view, 'list-raw-material' ) !== false ) {
         foreach ( $logs as $index => $log ) {
             $cb_id = 'checkbox' . ( $index + 2 );
             $log_date = ! empty( $log->log_date ) ? date( 'M d, Y', strtotime( $log->log_date ) ) : 'N/A';
+            $color_val = ! empty( $log->color ) ? esc_html( $log->color ) : '-';
             
             $tbody .= '<tr>';
             $tbody .= '<td class="text-muted" style="font-size:12px;">#' . esc_html( $log->id ) . '</td>';
             $tbody .= '<td>' . esc_html( $log_date ) . '</td>';
             $tbody .= '<td>' . esc_html( $log->category ) . '</td>';
             $tbody .= '<td>' . esc_html( $log->product_name ) . '</td>';
+            $tbody .= '<td><span class="badge bg-info-light text-info font-weight-bold px-2 py-1">' . $color_val . '</span></td>';
             $tbody .= '<td>' . esc_html( $log->quantity ) . '</td>';
             $tbody .= '<td>' . esc_html( $log->created_by ) . '</td>';
             $tbody .= '<td>' . esc_html( date( 'M d, Y h:i A', strtotime( $log->Created_dt ) ) ) . '</td>';
             $tbody .= '</tr>';
         }
     } else {
-        $tbody .= '<tr><td colspan="7" class="text-center">No raw material logs found.</td></tr>';
+        $tbody .= '<tr><td colspan="8" class="text-center">No raw material logs found.</td></tr>';
     }
     $tbody .= '</tbody>';
     $content = preg_replace_callback( '/<tbody class="ligth-body">.*?<\/tbody>/s', function() use ($tbody) { return $tbody; }, $content );
