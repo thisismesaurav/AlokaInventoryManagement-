@@ -810,41 +810,89 @@ if ( strpos( $view, 'list-suppliers' ) !== false ) {
     $content .= '<script>window.supplierList = ' . wp_json_encode( $suppliers ) . '; window.currentIsAdmin = ' . ( current_user_can( 'administrator' ) ? 'true' : 'false' ) . ';</script>';
 }
 
+// Helper function to render color badge with dynamic background based on color name
+if ( ! function_exists( 'get_color_badge_html' ) ) {
+    function get_color_badge_html( $color ) {
+        if ( empty( $color ) ) {
+            return '<span class="badge badge-light border text-muted px-2 py-1">-</span>';
+        }
+        $c      = strtolower( trim( $color ) );
+        $bg     = '#6c757d';
+        $text   = '#ffffff';
+        $border = 'transparent';
+
+        if ( strpos( $c, 'red' ) !== false ) {
+            $bg = '#dc3545'; $text = '#ffffff';
+        } elseif ( strpos( $c, 'green' ) !== false ) {
+            $bg = '#28a745'; $text = '#ffffff';
+        } elseif ( strpos( $c, 'navy' ) !== false ) {
+            $bg = '#0a192f'; $text = '#ffffff';
+        } elseif ( strpos( $c, 'blue' ) !== false ) {
+            $bg = '#007bff'; $text = '#ffffff';
+        } elseif ( strpos( $c, 'yellow' ) !== false ) {
+            $bg = '#ffc107'; $text = '#212529';
+        } elseif ( strpos( $c, 'black' ) !== false ) {
+            $bg = '#1a1a1a'; $text = '#ffffff';
+        } elseif ( strpos( $c, 'white' ) !== false ) {
+            $bg = '#ffffff'; $text = '#212529'; $border = '#ced4da';
+        } elseif ( strpos( $c, 'grey' ) !== false || strpos( $c, 'gray' ) !== false ) {
+            $bg = '#6c757d'; $text = '#ffffff';
+        } elseif ( strpos( $c, 'orange' ) !== false ) {
+            $bg = '#fd7e14'; $text = '#ffffff';
+        } elseif ( strpos( $c, 'pink' ) !== false ) {
+            $bg = '#e83e8c'; $text = '#ffffff';
+        } elseif ( strpos( $c, 'purple' ) !== false ) {
+            $bg = '#6f42c1'; $text = '#ffffff';
+        } elseif ( strpos( $c, 'maroon' ) !== false ) {
+            $bg = '#800000'; $text = '#ffffff';
+        } else {
+            $clean_bg = strtolower( preg_replace( '/[^a-z0-9#]/', '', $color ) );
+            if ( ! empty( $clean_bg ) ) {
+                $bg = $clean_bg;
+            }
+            $text = '#ffffff';
+        }
+
+        return sprintf(
+            '<span class="badge px-3 py-1 font-weight-bold" style="background-color: %s; color: %s; border: 1px solid %s; font-size: 12px; border-radius: 12px;">%s</span>',
+            esc_attr( $bg ),
+            esc_attr( $text ),
+            esc_attr( $border ),
+            esc_html( $color )
+        );
+    }
+}
+
 // Render Dynamic Real-Time Raw Material Logs from wp_raw_material
 if ( strpos( $view, 'list-raw-material' ) !== false ) {
     global $wpdb;
-    $raw_table = $wpdb->prefix . 'raw_material';
+    $raw_table  = $wpdb->prefix . 'raw_material';
     $prod_table = $wpdb->prefix . 'products';
-    $cat_table  = $wpdb->prefix . 'prod_category';
 
     $logs = $wpdb->get_results( "
-        SELECT r.id, r.product_id, p.product_name, COALESCE(c.name, p.category) as category, r.color, r.quantity, r.log_date, r.created_by, r.Created_dt
+        SELECT r.id, r.product_id, p.product_name, r.color, r.quantity, r.log_date, r.created_by, r.Created_dt
         FROM $raw_table r
         LEFT JOIN $prod_table p ON r.product_id = p.id
-        LEFT JOIN $cat_table c ON (p.category = c.id OR p.category = c.name)
         ORDER BY r.log_date DESC, r.id DESC
     " );
 
     $tbody = '<tbody class="ligth-body">';
     if ( ! empty( $logs ) ) {
         foreach ( $logs as $index => $log ) {
-            $cb_id = 'checkbox' . ( $index + 2 );
             $log_date = ! empty( $log->log_date ) ? date( 'M d, Y', strtotime( $log->log_date ) ) : 'N/A';
-            $color_val = ! empty( $log->color ) ? esc_html( $log->color ) : '-';
             
             $tbody .= '<tr>';
             $tbody .= '<td class="text-muted" style="font-size:12px;">#' . esc_html( $log->id ) . '</td>';
             $tbody .= '<td>' . esc_html( $log_date ) . '</td>';
-            $tbody .= '<td>' . esc_html( $log->category ) . '</td>';
-            $tbody .= '<td>' . esc_html( $log->product_name ) . '</td>';
-            $tbody .= '<td><span class="badge bg-info-light text-info font-weight-bold px-2 py-1">' . $color_val . '</span></td>';
+            $tbody .= '<td class="font-weight-bold text-dark">' . esc_html( $log->product_name ) . '</td>';
+            $tbody .= '<td>' . get_color_badge_html( $log->color ) . '</td>';
             $tbody .= '<td>' . esc_html( $log->quantity ) . '</td>';
             $tbody .= '<td>' . esc_html( $log->created_by ) . '</td>';
             $tbody .= '<td>' . esc_html( date( 'M d, Y h:i A', strtotime( $log->Created_dt ) ) ) . '</td>';
             $tbody .= '</tr>';
         }
     } else {
-        $tbody .= '<tr><td colspan="8" class="text-center">No raw material logs found.</td></tr>';
+        $tbody .= '<tr><td colspan="7" class="text-center">No raw material logs found.</td></tr>';
     }
     $tbody .= '</tbody>';
     $content = preg_replace_callback( '/<tbody class="ligth-body">.*?<\/tbody>/s', function() use ($tbody) { return $tbody; }, $content );

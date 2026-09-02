@@ -50,7 +50,6 @@
                                             <tr>
                                                 <th>Product ID</th>
                                                 <th>Product Name</th>
-                                                <th>Category</th>
                                                 <th>Color</th>
                                                 <th>Log Date</th>
                                                 <th>Quantity Logged</th>
@@ -127,6 +126,47 @@
     // AJAX URL for WordPress environment using reliable global variable
     const ajaxurl = window.posdashAjaxUrl;
     let selectedProduct = null;
+
+    // --- Color Badge Styling Helper ---
+    function getColorBadgeHTML(color) {
+        if (!color) return '<span class="badge badge-light border text-muted px-2 py-1">-</span>';
+        const c = color.toLowerCase().trim();
+        let bg = '#6c757d';
+        let text = '#ffffff';
+        let border = 'transparent';
+
+        if (c.includes('red')) {
+            bg = '#dc3545'; text = '#ffffff';
+        } else if (c.includes('green')) {
+            bg = '#28a745'; text = '#ffffff';
+        } else if (c.includes('navy')) {
+            bg = '#0a192f'; text = '#ffffff';
+        } else if (c.includes('blue')) {
+            bg = '#007bff'; text = '#ffffff';
+        } else if (c.includes('yellow')) {
+            bg = '#ffc107'; text = '#212529';
+        } else if (c.includes('black')) {
+            bg = '#1a1a1a'; text = '#ffffff';
+        } else if (c.includes('white')) {
+            bg = '#ffffff'; text = '#212529'; border = '#ced4da';
+        } else if (c.includes('grey') || c.includes('gray')) {
+            bg = '#6c757d'; text = '#ffffff';
+        } else if (c.includes('orange')) {
+            bg = '#fd7e14'; text = '#ffffff';
+        } else if (c.includes('pink')) {
+            bg = '#e83e8c'; text = '#ffffff';
+        } else if (c.includes('purple')) {
+            bg = '#6f42c1'; text = '#ffffff';
+        } else if (c.includes('maroon')) {
+            bg = '#800000'; text = '#ffffff';
+        } else {
+            const cleanBg = color.toLowerCase().replace(/[^a-z0-9#]/g, '');
+            if (cleanBg) bg = cleanBg;
+            text = '#ffffff';
+        }
+
+        return `<span class="badge px-3 py-1 font-weight-bold" style="background-color: ${bg}; color: ${text}; border: 1px solid ${border}; font-size: 12px; border-radius: 12px;">${color}</span>`;
+    }
 
     // --- Load Master Colors ---
     function loadColors(selectedColor = '') {
@@ -387,7 +427,7 @@
                     const tbody = document.querySelector('#raw_log_table tbody');
                     tbody.innerHTML = '';
                     if(res.data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No raw material logs found for this date.</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No raw material logs found for this date.</td></tr>';
                         return;
                     }
                     res.data.forEach(log => {
@@ -395,8 +435,7 @@
                         tr.innerHTML = `
                             <td><span class="text-muted font-weight-bold">#${log.product_id}</span></td>
                             <td class="font-weight-bold text-dark">${log.product_name}</td>
-                            <td>${log.category}</td>
-                            <td><span class="badge badge-info px-2 py-1" style="font-size:12px;">${log.color || '-'}</span></td>
+                            <td>${getColorBadgeHTML(log.color)}</td>
                             <td>${log.log_date}</td>
                             <td class="text-center"><span class="badge badge-success px-3 py-2" style="font-size: 14px;">${log.quantity} Units</span></td>
                             <td>${log.created_by}</td>
