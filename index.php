@@ -891,10 +891,27 @@ if ( strpos( $view, 'list-raw-material' ) !== false ) {
             $tbody .= '<td>' . esc_html( $log->quantity ) . '</td>';
             $tbody .= '<td>' . esc_html( $log->created_by ) . '</td>';
             $tbody .= '<td>' . esc_html( date( 'M d, Y h:i A', strtotime( $log->Created_dt ) ) ) . '</td>';
+            $tbody .= '<td class="text-right pr-4">';
+            $tbody .= '<div class="d-flex align-items-center justify-content-end list-action">';
+            $tbody .= '<button type="button" class="btn btn-sm btn-outline-primary mr-2 btn-edit-raw-log" ';
+            $tbody .= 'data-id="' . esc_attr( $log->id ) . '" ';
+            $tbody .= 'data-product-name="' . esc_attr( $log->product_name ) . '" ';
+            $tbody .= 'data-color="' . esc_attr( $log->color ) . '" ';
+            $tbody .= 'data-quantity="' . esc_attr( $log->quantity ) . '" ';
+            $tbody .= 'data-log-date="' . esc_attr( $log->log_date ) . '" title="Edit Log">';
+            $tbody .= '<i class="ri-pencil-line mr-0"></i>';
+            $tbody .= '</button>';
+            $tbody .= '<button type="button" class="btn btn-sm btn-outline-danger btn-delete-raw-log" ';
+            $tbody .= 'data-id="' . esc_attr( $log->id ) . '" ';
+            $tbody .= 'data-product-name="' . esc_attr( $log->product_name ) . '" title="Delete Log">';
+            $tbody .= '<i class="ri-delete-bin-line mr-0"></i>';
+            $tbody .= '</button>';
+            $tbody .= '</div>';
+            $tbody .= '</td>';
             $tbody .= '</tr>';
         }
     } else {
-        $tbody .= '<tr><td colspan="7" class="text-center">No raw material logs found.</td></tr>';
+        $tbody .= '<tr><td colspan="8" class="text-center">No raw material logs found.</td></tr>';
     }
     $tbody .= '</tbody>';
     $content = preg_replace_callback( '/<tbody class="ligth-body">.*?<\/tbody>/s', function() use ($tbody) { return $tbody; }, $content );
@@ -905,7 +922,11 @@ if ( strpos( $view, 'list-raw-material' ) !== false ) {
             a.product_id, 
             COALESCE(p.product_name, 'Unknown Product') AS product_name, 
             COALESCE(a.color, '') AS color, 
-            SUM(CASE WHEN a.txn_type = 'IN' THEN a.quantity ELSE -a.quantity END) AS total_stock
+            SUM(CASE 
+                WHEN COALESCE(a.action_type, 'Added') = 'Deleted' THEN 0
+                WHEN a.txn_type LIKE 'IN%%' THEN a.quantity 
+                ELSE -a.quantity 
+            END) AS total_stock
         FROM $audit_table a
         LEFT JOIN $prod_table p ON a.product_id = p.id
         GROUP BY a.product_id, COALESCE(a.color, '')
@@ -921,7 +942,7 @@ if ( strpos( $view, 'list-raw-material' ) !== false ) {
 
             // Fetch audit records for this product + color
             $audits = $wpdb->get_results( $wpdb->prepare( "
-                SELECT id, parent_id, txn_type, quantity, entry_date, created_at, created_by
+                SELECT id, parent_id, txn_type, COALESCE(action_type, 'Added') AS action_type, quantity, old_quantity, entry_date, old_entry_date, color, old_color, created_at, created_by
                 FROM $audit_table
                 WHERE product_id = %d AND (color = %s OR (color IS NULL AND %s = ''))
                 ORDER BY entry_date DESC, id DESC
@@ -959,6 +980,7 @@ if ( strpos( $view, 'list-raw-material' ) !== false ) {
             $stock_tbody .= '<th>Entry Date</th>';
             $stock_tbody .= '<th>Logged Date & Time</th>';
             $stock_tbody .= '<th>Type</th>';
+            $stock_tbody .= '<th>Operation</th>';
             $stock_tbody .= '<th>Quantity</th>';
             $stock_tbody .= '<th>Logged By</th>';
             $stock_tbody .= '</tr>';
@@ -967,23 +989,64 @@ if ( strpos( $view, 'list-raw-material' ) !== false ) {
 
             if ( ! empty( $audits ) ) {
                 foreach ( $audits as $audit ) {
-                    $entry_dt = ! empty( $audit->entry_date ) ? date( 'M d, Y', strtotime( $audit->entry_date ) ) : 'N/A';
+                    $entry_dt   = ! empty( $audit->entry_date ) ? date( 'M d, Y', strtotime( $audit->entry_date ) ) : 'N/A';
                     $created_dt = ! empty( $audit->created_at ) ? date( 'M d, Y h:i A', strtotime( $audit->created_at ) ) : 'N/A';
-                    $is_in = strtoupper( $audit->txn_type ) === 'IN';
+                    
+                    $txn_raw = trim( $audit->txn_type );
+                    $is_in   = strpos( strtoupper( $txn_raw ), 'IN' ) !== false;
                     $type_badge = $is_in ? '<span class="badge badge-success px-2 py-1"><i class="las la-arrow-down mr-1"></i>IN</span>' : '<span class="badge badge-danger px-2 py-1"><i class="las la-arrow-up mr-1"></i>OUT</span>';
-                    $qty_formatted = $is_in ? '<span class="text-success font-weight-bold">+' . esc_html( number_format( (float) $audit->quantity, 2 ) ) . '</span>' : '<span class="text-danger font-weight-bold">-' . esc_html( number_format( (float) $audit->quantity, 2 ) ) . '</span>';
+
+                    // Operation badge
+                    $act_raw   = ! empty( $audit->action_type ) ? trim( $audit->action_type ) : ( $is_in ? 'Added' : 'Released' );
+                    $act_upper = strtoupper( $act_raw );
+
+                    if ( $act_upper === 'DELETED' ) {
+                        $op_badge = '<span class="badge badge-secondary px-2 py-1"><i class="las la-trash-alt mr-1"></i>Deleted</span>';
+                        $qty_formatted = '<span class="text-muted font-weight-bold" style="text-decoration: line-through;">' . ( $is_in ? '+' : '-' ) . esc_html( number_format( (float) $audit->quantity, 2 ) ) . '</span>';
+                        $entry_date_display = esc_html( $entry_dt );
+                    } elseif ( $act_upper === 'EDITED' ) {
+                        $op_badge = '<span class="badge badge-info px-2 py-1"><i class="las la-edit mr-1"></i>Edited</span>';
+                        
+                        // Show old color if changed
+                        if ( ! empty( $audit->old_color ) && strtolower( trim( $audit->old_color ) ) !== strtolower( trim( $audit->color ) ) ) {
+                            $op_badge .= '<small class="text-muted" style="font-size:11px; display:block; margin-top:2px;">Color: ' . esc_html( $audit->color ) . ' (Was: <span style="text-decoration:line-through;">' . esc_html( $audit->old_color ) . '</span>)</small>';
+                        }
+
+                        // Show new quantity with old quantity below if changed
+                        $qty_formatted = '<div><span class="text-success font-weight-bold">+' . esc_html( number_format( (float) $audit->quantity, 2 ) ) . '</span></div>';
+                        if ( ! is_null( $audit->old_quantity ) && abs( (float) $audit->old_quantity - (float) $audit->quantity ) > 0.0001 ) {
+                            $old_q_val = number_format( (float) $audit->old_quantity, 2 );
+                            $qty_formatted .= '<small class="text-muted" style="font-size:11px; display:block;">(Was: <span style="text-decoration:line-through;">+' . esc_html( $old_q_val ) . '</span>)</small>';
+                        }
+
+                        // Show new entry date with old entry date below if changed
+                        $entry_date_display = '<div>' . esc_html( $entry_dt ) . '</div>';
+                        if ( ! empty( $audit->old_entry_date ) && $audit->old_entry_date !== '0000-00-00' && $audit->old_entry_date !== $audit->entry_date ) {
+                            $old_dt = date( 'M d, Y', strtotime( $audit->old_entry_date ) );
+                            $entry_date_display .= '<small class="text-muted" style="font-size:11px; display:block;">(Was: <span style="text-decoration:line-through;">' . esc_html( $old_dt ) . '</span>)</small>';
+                        }
+                    } elseif ( $act_upper === 'RELEASED' ) {
+                        $op_badge = '<span class="badge badge-warning text-white px-2 py-1"><i class="las la-minus-circle mr-1"></i>Released</span>';
+                        $qty_formatted = '<span class="text-danger font-weight-bold">-' . esc_html( number_format( (float) $audit->quantity, 2 ) ) . '</span>';
+                        $entry_date_display = esc_html( $entry_dt );
+                    } else {
+                        $op_badge = '<span class="badge badge-success px-2 py-1"><i class="las la-plus-circle mr-1"></i>Added</span>';
+                        $qty_formatted = '<span class="text-success font-weight-bold">+' . esc_html( number_format( (float) $audit->quantity, 2 ) ) . '</span>';
+                        $entry_date_display = esc_html( $entry_dt );
+                    }
 
                     $stock_tbody .= '<tr>';
                     $stock_tbody .= '<td class="text-muted" style="font-size:12px;">#' . esc_html( $audit->id ) . '</td>';
-                    $stock_tbody .= '<td>' . esc_html( $entry_dt ) . '</td>';
+                    $stock_tbody .= '<td>' . $entry_date_display . '</td>';
                     $stock_tbody .= '<td>' . esc_html( $created_dt ) . '</td>';
                     $stock_tbody .= '<td>' . $type_badge . '</td>';
+                    $stock_tbody .= '<td>' . $op_badge . '</td>';
                     $stock_tbody .= '<td>' . $qty_formatted . '</td>';
                     $stock_tbody .= '<td>' . esc_html( $audit->created_by ) . '</td>';
                     $stock_tbody .= '</tr>';
                 }
             } else {
-                $stock_tbody .= '<tr><td colspan="6" class="text-center py-3">No audit records found.</td></tr>';
+                $stock_tbody .= '<tr><td colspan="7" class="text-center py-3">No audit records found.</td></tr>';
             }
 
             $stock_tbody .= '</tbody>';

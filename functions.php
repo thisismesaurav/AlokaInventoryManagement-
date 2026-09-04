@@ -2356,9 +2356,13 @@ function posdash_ensure_raw_mat_audit_schema() {
             parent_id bigint(20) DEFAULT NULL,
             product_id bigint(20) NOT NULL,
             color varchar(100) DEFAULT NULL,
-            txn_type varchar(10) NOT NULL DEFAULT 'IN',
+            old_color varchar(100) DEFAULT NULL,
+            txn_type varchar(20) NOT NULL DEFAULT 'IN',
+            action_type varchar(50) NOT NULL DEFAULT 'Added',
             quantity decimal(10,2) NOT NULL DEFAULT '0.00',
+            old_quantity decimal(10,2) DEFAULT NULL,
             entry_date date NOT NULL DEFAULT '0000-00-00',
+            old_entry_date date DEFAULT NULL,
             created_at datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
             created_by varchar(100) NOT NULL DEFAULT '',
             PRIMARY KEY  (id),
@@ -2372,6 +2376,26 @@ function posdash_ensure_raw_mat_audit_schema() {
         $fk_check = $wpdb->get_results( "SELECT * FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'fk_raw_mat_audit_parent' AND CONSTRAINT_SCHEMA = DATABASE()" );
         if ( empty( $fk_check ) ) {
             $wpdb->query( "ALTER TABLE $table_audit ADD CONSTRAINT fk_raw_mat_audit_parent FOREIGN KEY (parent_id) REFERENCES $table_parent (id) ON DELETE SET NULL" );
+        }
+    } else {
+        // Ensure txn_type column length can accommodate 'IN(Edit)'
+        $wpdb->query( "ALTER TABLE $table_audit MODIFY COLUMN txn_type varchar(20) NOT NULL DEFAULT 'IN'" );
+
+        // Ensure action_type column exists
+        $col_action = $wpdb->get_results( "SHOW COLUMNS FROM $table_audit LIKE 'action_type'" );
+        if ( empty( $col_action ) ) {
+            $wpdb->query( "ALTER TABLE $table_audit ADD COLUMN action_type varchar(50) NOT NULL DEFAULT 'Added' AFTER txn_type" );
+            $wpdb->query( "UPDATE $table_audit SET action_type = 'Released' WHERE txn_type = 'OUT'" );
+            $wpdb->query( "UPDATE $table_audit SET action_type = 'Edited' WHERE txn_type LIKE '%Edit%'" );
+            $wpdb->query( "UPDATE $table_audit SET action_type = 'Added' WHERE txn_type = 'IN'" );
+        }
+
+        // Ensure old_entry_date, old_color, old_quantity columns exist
+        $col_old_date = $wpdb->get_results( "SHOW COLUMNS FROM $table_audit LIKE 'old_entry_date'" );
+        if ( empty( $col_old_date ) ) {
+            $wpdb->query( "ALTER TABLE $table_audit ADD COLUMN old_entry_date date DEFAULT NULL AFTER entry_date" );
+            $wpdb->query( "ALTER TABLE $table_audit ADD COLUMN old_color varchar(100) DEFAULT NULL AFTER color" );
+            $wpdb->query( "ALTER TABLE $table_audit ADD COLUMN old_quantity decimal(10,2) DEFAULT NULL AFTER quantity" );
         }
     }
 
@@ -2388,14 +2412,15 @@ function posdash_ensure_raw_mat_audit_schema() {
             $wpdb->insert(
                 $table_audit,
                 array(
-                    'parent_id'  => $parent->id,
-                    'product_id' => $parent->product_id,
-                    'color'      => $parent->color,
-                    'txn_type'   => 'IN',
-                    'quantity'   => $parent->quantity,
-                    'entry_date' => $parent->log_date,
-                    'created_at' => $parent->Created_dt,
-                    'created_by' => $parent->created_by,
+                    'parent_id'   => $parent->id,
+                    'product_id'  => $parent->product_id,
+                    'color'       => $parent->color,
+                    'txn_type'    => 'IN',
+                    'action_type' => 'Added',
+                    'quantity'    => $parent->quantity,
+                    'entry_date'  => $parent->log_date,
+                    'created_at'  => $parent->Created_dt,
+                    'created_by'  => $parent->created_by,
                 )
             );
         }
@@ -2496,14 +2521,15 @@ function posdash_save_raw_material_log() {
         $wpdb->insert(
             $wpdb->prefix . 'raw_mat_audit',
             array(
-                'parent_id'  => $parent_id,
-                'product_id' => $prod_id,
-                'color'      => $color,
-                'txn_type'   => 'IN',
-                'quantity'   => $qty,
-                'entry_date' => $date,
-                'created_at' => $now,
-                'created_by' => $username,
+                'parent_id'   => $parent_id,
+                'product_id'  => $prod_id,
+                'color'       => $color,
+                'txn_type'    => 'IN',
+                'action_type' => 'Added',
+                'quantity'    => $qty,
+                'entry_date'  => $date,
+                'created_at'  => $now,
+                'created_by'  => $username,
             )
         );
     }
@@ -2536,9 +2562,13 @@ function posdash_release_raw_material_stock() {
 
     $audit_table = $wpdb->prefix . 'raw_mat_audit';
 
-    // Calculate current available stock for this product + color
+    // Calculate current available stock for this product + color excluding Deleted records
     $available_stock = (float) $wpdb->get_var( $wpdb->prepare( "
-        SELECT SUM(CASE WHEN txn_type = 'IN' THEN quantity ELSE -quantity END)
+        SELECT SUM(CASE 
+            WHEN COALESCE(action_type, '') = 'Deleted' THEN 0 
+            WHEN txn_type LIKE 'IN%%' THEN quantity 
+            ELSE -quantity 
+        END)
         FROM $audit_table
         WHERE product_id = %d AND (color = %s OR (color IS NULL AND %s = ''))
     ", $prod_id, $color, $color ) );
@@ -2555,14 +2585,15 @@ function posdash_release_raw_material_stock() {
     $inserted = $wpdb->insert(
         $audit_table,
         array(
-            'parent_id'  => null,
-            'product_id' => $prod_id,
-            'color'      => $color,
-            'txn_type'   => 'OUT',
-            'quantity'   => $qty,
-            'entry_date' => $date,
-            'created_at' => $now,
-            'created_by' => $username,
+            'parent_id'   => null,
+            'product_id'  => $prod_id,
+            'color'       => $color,
+            'txn_type'    => 'OUT',
+            'action_type' => 'Released',
+            'quantity'    => $qty,
+            'entry_date'  => $date,
+            'created_at'  => $now,
+            'created_by'  => $username,
         )
     );
 
@@ -2577,6 +2608,179 @@ function posdash_release_raw_material_stock() {
         'message'   => 'Stock released successfully.',
         'new_stock' => number_format( $new_stock, 2 ),
     ) );
+}
+
+add_action( 'wp_ajax_delete_raw_material_log', 'posdash_delete_raw_material_log' );
+function posdash_delete_raw_material_log() {
+    if ( ! is_user_logged_in() ) {
+        wp_send_json_error( 'Authentication required.', 403 );
+        return;
+    }
+    check_ajax_referer( 'posdash_ajax_action', 'nonce' );
+    global $wpdb;
+
+    $log_id = isset( $_POST['log_id'] ) ? intval( wp_unslash( $_POST['log_id'] ) ) : 0;
+    if ( $log_id <= 0 ) {
+        wp_send_json_error( 'Invalid log ID.' );
+        return;
+    }
+
+    $raw_table   = $wpdb->prefix . 'raw_material';
+    $audit_table = $wpdb->prefix . 'raw_mat_audit';
+
+    // Get parent log details before deleting
+    $existing = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $raw_table WHERE id = %d", $log_id ) );
+    if ( ! $existing ) {
+        wp_send_json_error( 'Raw material log entry not found.' );
+        return;
+    }
+
+    $current_user = wp_get_current_user();
+    $username = $current_user->exists() ? $current_user->user_login : 'admin';
+
+    // Check if an audit record exists for this parent log ID
+    $audit_id = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $audit_table WHERE parent_id = %d LIMIT 1", $log_id ) );
+
+    if ( $audit_id ) {
+        // Update audit record to set action_type = 'Deleted' and break foreign key link (parent_id = NULL)
+        $wpdb->update(
+            $audit_table,
+            array(
+                'action_type' => 'Deleted',
+                'parent_id'   => null,
+            ),
+            array( 'id' => $audit_id )
+        );
+    } else {
+        // Insert audit log record marked as Deleted if missing
+        $wpdb->insert(
+            $audit_table,
+            array(
+                'parent_id'   => null,
+                'product_id'  => $existing->product_id,
+                'color'       => $existing->color,
+                'txn_type'    => 'IN',
+                'action_type' => 'Deleted',
+                'quantity'    => $existing->quantity,
+                'entry_date'  => $existing->log_date,
+                'created_at'  => current_time( 'mysql' ),
+                'created_by'  => $username,
+            )
+        );
+    }
+
+    // Delete parent raw material log entry from wp_raw_material
+    $deleted = $wpdb->delete( $raw_table, array( 'id' => $log_id ) );
+
+    if ( $deleted ) {
+        wp_send_json_success( 'Raw material log deleted successfully.' );
+    } else {
+        wp_send_json_error( 'Failed to delete raw material log.' );
+    }
+}
+
+add_action( 'wp_ajax_edit_raw_material_log', 'posdash_edit_raw_material_log' );
+function posdash_edit_raw_material_log() {
+    if ( ! is_user_logged_in() ) {
+        wp_send_json_error( 'Authentication required.', 403 );
+        return;
+    }
+    check_ajax_referer( 'posdash_ajax_action', 'nonce' );
+    global $wpdb;
+
+    $log_id = isset( $_POST['log_id'] ) ? intval( wp_unslash( $_POST['log_id'] ) ) : 0;
+    $qty    = isset( $_POST['quantity'] ) ? floatval( wp_unslash( $_POST['quantity'] ) ) : 0.00;
+    $color  = isset( $_POST['color'] ) ? sanitize_text_field( wp_unslash( $_POST['color'] ) ) : '';
+    $date   = isset( $_POST['log_date'] ) ? sanitize_text_field( wp_unslash( $_POST['log_date'] ) ) : '';
+
+    if ( $log_id <= 0 || $qty <= 0 ) {
+        wp_send_json_error( 'Invalid input parameters.' );
+        return;
+    }
+
+    if ( empty( $date ) || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) || ! strtotime( $date ) ) {
+        $date = current_time( 'Y-m-d' );
+    }
+
+    $raw_table   = $wpdb->prefix . 'raw_material';
+    $audit_table = $wpdb->prefix . 'raw_mat_audit';
+
+    // Check if log exists
+    $existing = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $raw_table WHERE id = %d", $log_id ) );
+    if ( ! $existing ) {
+        wp_send_json_error( 'Raw material log entry not found.' );
+        return;
+    }
+
+    $old_date  = $existing->log_date;
+    $old_color = $existing->color;
+    $old_qty   = floatval( $existing->quantity );
+
+    $date_changed  = ( $old_date !== $date );
+    $color_changed = ( strtolower( trim( (string) $old_color ) ) !== strtolower( trim( (string) $color ) ) );
+    $qty_changed   = ( abs( $old_qty - $qty ) > 0.0001 );
+
+    $current_user = wp_get_current_user();
+    $username = $current_user->exists() ? $current_user->user_login : 'admin';
+    $now = current_time( 'mysql' );
+
+    // Update parent wp_raw_material table
+    $wpdb->update(
+        $raw_table,
+        array(
+            'log_date'        => $date,
+            'color'           => $color,
+            'quantity'        => $qty,
+            'Last_upd_dt'     => $now,
+            'Last_updated_by' => $username,
+        ),
+        array( 'id' => $log_id )
+    );
+
+    // Update or insert child audit record in wp_raw_mat_audit with action_type = 'Edited'
+    $audit_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $audit_table WHERE parent_id = %d LIMIT 1", $log_id ) );
+
+    if ( $audit_row ) {
+        // Retain previously stored old values if they exist, or record newly changed old values
+        $final_old_date  = $date_changed ? $old_date : $audit_row->old_entry_date;
+        $final_old_color = $color_changed ? $old_color : $audit_row->old_color;
+        $final_old_qty   = $qty_changed ? $old_qty : $audit_row->old_quantity;
+
+        $wpdb->update(
+            $audit_table,
+            array(
+                'color'          => $color,
+                'old_color'      => $final_old_color,
+                'quantity'       => $qty,
+                'old_quantity'   => $final_old_qty,
+                'entry_date'     => $date,
+                'old_entry_date' => $final_old_date,
+                'txn_type'       => 'IN(Edit)',
+                'action_type'    => 'Edited',
+            ),
+            array( 'id' => $audit_row->id )
+        );
+    } else {
+        $wpdb->insert(
+            $audit_table,
+            array(
+                'parent_id'      => $log_id,
+                'product_id'     => $existing->product_id,
+                'color'          => $color,
+                'old_color'      => $color_changed ? $old_color : null,
+                'txn_type'       => 'IN(Edit)',
+                'action_type'    => 'Edited',
+                'quantity'       => $qty,
+                'old_quantity'   => $qty_changed ? $old_qty : null,
+                'entry_date'     => $date,
+                'old_entry_date' => $date_changed ? $old_date : null,
+                'created_at'     => $now,
+                'created_by'     => $username,
+            )
+        );
+    }
+
+    wp_send_json_success( 'Raw material log updated successfully.' );
 }
 
 add_action( 'wp_ajax_get_raw_material_logs', 'posdash_get_raw_material_logs' );
