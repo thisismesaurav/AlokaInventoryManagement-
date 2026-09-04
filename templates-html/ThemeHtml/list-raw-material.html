@@ -1,13 +1,42 @@
 <div class="content-page">
      <div class="container-fluid">
         <div class="row">
+            <!-- Total Stock Section (Top) -->
             <div class="col-lg-12">
+                <div class="d-flex flex-wrap align-items-center justify-content-between mb-4">
+                    <div>
+                        <h4 class="mb-3">Total Stock</h4>
+                        <p class="mb-0">Summary of current available stock for each raw material and color with transaction audit log history.</p>
+                    </div>
+                    <a href="add-raw-material" class="btn btn-primary add-list"><i class="las la-plus mr-3"></i>Add Raw Material</a>
+                </div>
+            </div>
+            <div class="col-lg-12">
+                <div class="table-responsive rounded mb-3">
+                    <table class="data-table table mb-0 tbl-server-info">
+                        <thead class="bg-white text-uppercase">
+                            <tr class="ligth ligth-data">
+                                <th style="width: 50px;"></th>
+                                <th>Product Name</th>
+                                <th>Color</th>
+                                <th>Total Stock Available</th>
+                                <th class="text-right pr-4">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="total-stock-body">
+                            <!-- Data injected via index.php server-side -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Raw Material Log List Section (Bottom) -->
+            <div class="col-lg-12 mt-4">
                 <div class="d-flex flex-wrap align-items-center justify-content-between mb-4">
                     <div>
                         <h4 class="mb-3">Raw Material Log List</h4>
                         <p class="mb-0">A log dashboard lets you easily view and track the quantities of raw materials logged in the system.</p>
                     </div>
-                    <a href="add-raw-material" class="btn btn-primary add-list"><i class="las la-plus mr-3"></i>Add Raw Material</a>
                 </div>
             </div>
             <div class="col-lg-12">
@@ -34,3 +63,189 @@
         <!-- Page end  -->
     </div>
 </div>
+
+<!-- Release Stock Modal -->
+<div class="modal fade" id="releaseStockModal" tabindex="-1" role="dialog" aria-labelledby="releaseStockModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-warning text-white py-3">
+                <h5 class="modal-title text-white font-weight-bold" id="releaseStockModalLabel">
+                    <i class="las la-minus-circle mr-2"></i>Release Raw Material Stock
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="formReleaseStock">
+                <div class="modal-body p-4">
+                    <input type="hidden" id="rel_product_id" name="product_id">
+                    <input type="hidden" id="rel_color" name="color">
+
+                    <div class="form-group mb-3">
+                        <label class="font-weight-bold text-dark mb-1">Product Name</label>
+                        <input type="text" id="rel_product_name_display" class="form-control font-weight-bold bg-light" readonly>
+                    </div>
+
+                    <div class="form-row mb-3">
+                        <div class="col-6">
+                            <label class="font-weight-bold text-dark mb-1">Color</label>
+                            <div id="rel_color_display" class="py-1"></div>
+                        </div>
+                        <div class="col-6">
+                            <label class="font-weight-bold text-dark mb-1">Current Stock</label>
+                            <div>
+                                <span id="rel_current_stock_display" class="font-weight-bold text-dark font-size-16">0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="rel_quantity" class="font-weight-bold text-dark mb-1">Quantity to Release <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" min="0.01" id="rel_quantity" class="form-control form-control-lg text-center font-weight-bold text-danger border-warning" placeholder="Enter quantity to release" required style="font-size: 22px;">
+                        <small class="text-muted">Enter quantity to deduct from current available stock.</small>
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label for="rel_date" class="font-weight-bold text-dark mb-1">Release Date <span class="text-danger">*</span></label>
+                        <input type="date" id="rel_date" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-3">
+                    <button type="button" class="btn btn-secondary px-4" data-dismiss="modal">Cancel</button>
+                    <button type="submit" id="btnConfirmRelease" class="btn btn-warning text-white font-weight-bold px-4">
+                        <i class="las la-check-circle mr-1"></i>Confirm Release
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set default date for release modal to today
+    const today = new Date().toISOString().split('T')[0];
+    const relDateInput = document.getElementById('rel_date');
+    if (relDateInput) {
+        relDateInput.value = today;
+    }
+
+    // Accordion Toggle Handler
+    document.addEventListener('click', function(e) {
+        const toggleBtn = e.target.closest('.btn-accordion-toggle');
+        if (toggleBtn) {
+            const targetId = toggleBtn.getAttribute('data-target');
+            const targetRow = document.querySelector(targetId);
+            const icon = toggleBtn.querySelector('.accordion-icon');
+            if (targetRow) {
+                if (targetRow.style.display === 'none' || targetRow.style.display === '') {
+                    targetRow.style.display = 'table-row';
+                    if (icon) {
+                        icon.classList.remove('la-angle-down');
+                        icon.classList.add('la-angle-up');
+                    }
+                    toggleBtn.classList.remove('btn-outline-primary');
+                    toggleBtn.classList.add('btn-primary');
+                } else {
+                    targetRow.style.display = 'none';
+                    if (icon) {
+                        icon.classList.remove('la-angle-up');
+                        icon.classList.add('la-angle-down');
+                    }
+                    toggleBtn.classList.remove('btn-primary');
+                    toggleBtn.classList.add('btn-outline-primary');
+                }
+            }
+        }
+
+        // Release Stock Button Handler
+        const releaseBtn = e.target.closest('.btn-release-stock');
+        if (releaseBtn) {
+            const prodId = releaseBtn.getAttribute('data-product-id');
+            const prodName = releaseBtn.getAttribute('data-product-name');
+            const color = releaseBtn.getAttribute('data-color');
+            const colorHtml = releaseBtn.getAttribute('data-color-html');
+            const currentStock = parseFloat(releaseBtn.getAttribute('data-stock'));
+
+            document.getElementById('rel_product_id').value = prodId;
+            document.getElementById('rel_color').value = color;
+            document.getElementById('rel_product_name_display').value = prodName;
+            document.getElementById('rel_color_display').innerHTML = colorHtml || color;
+            document.getElementById('rel_current_stock_display').innerText = currentStock.toFixed(2);
+            
+            const relQtyInput = document.getElementById('rel_quantity');
+            relQtyInput.value = '';
+            relQtyInput.max = currentStock;
+            relQtyInput.focus();
+
+            if (typeof $ !== 'undefined' && $.fn.modal) {
+                $('#releaseStockModal').modal('show');
+            }
+        }
+    });
+
+    // Submit Release Stock Form via AJAX
+    const formRelease = document.getElementById('formReleaseStock');
+    if (formRelease) {
+        formRelease.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const prodId = document.getElementById('rel_product_id').value;
+            const color = document.getElementById('rel_color').value;
+            const qty = parseFloat(document.getElementById('rel_quantity').value);
+            const releaseDate = document.getElementById('rel_date').value;
+            const currentStock = parseFloat(document.getElementById('rel_current_stock_display').innerText);
+
+            if (isNaN(qty) || qty <= 0) {
+                alert('Please enter a valid release quantity greater than 0.');
+                return;
+            }
+
+            if (qty > currentStock) {
+                alert('Release quantity cannot exceed current available stock (' + currentStock.toFixed(2) + ').');
+                return;
+            }
+
+            const btnConfirm = document.getElementById('btnConfirmRelease');
+            btnConfirm.disabled = true;
+            btnConfirm.innerHTML = '<i class="las la-spinner la-spin mr-1"></i>Releasing...';
+
+            const ajaxurl = window.posdashAjaxUrl || '/wp-admin/admin-ajax.php';
+            const nonce = window.posdashNonce || '';
+
+            const formData = new URLSearchParams();
+            formData.append('action', 'release_raw_material_stock');
+            formData.append('nonce', nonce);
+            formData.append('product_id', prodId);
+            formData.append('color', color);
+            formData.append('quantity', qty);
+            formData.append('release_date', releaseDate);
+
+            fetch(ajaxurl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: formData.toString()
+            })
+            .then(res => res.json())
+            .then(data => {
+                btnConfirm.disabled = false;
+                btnConfirm.innerHTML = '<i class="las la-check-circle mr-1"></i>Confirm Release';
+                if (data.success) {
+                    if (typeof $ !== 'undefined' && $.fn.modal) {
+                        $('#releaseStockModal').modal('hide');
+                    }
+                    window.location.reload();
+                } else {
+                    alert(data.data || 'Error releasing stock.');
+                }
+            })
+            .catch(err => {
+                btnConfirm.disabled = false;
+                btnConfirm.innerHTML = '<i class="las la-check-circle mr-1"></i>Confirm Release';
+                alert('An unexpected error occurred: ' + err.message);
+            });
+        });
+    }
+});
+</script>

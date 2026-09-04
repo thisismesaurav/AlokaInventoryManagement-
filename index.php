@@ -863,12 +863,14 @@ if ( ! function_exists( 'get_color_badge_html' ) ) {
     }
 }
 
-// Render Dynamic Real-Time Raw Material Logs from wp_raw_material
+// Render Dynamic Real-Time Raw Material Logs & Total Stock Audit
 if ( strpos( $view, 'list-raw-material' ) !== false ) {
     global $wpdb;
-    $raw_table  = $wpdb->prefix . 'raw_material';
-    $prod_table = $wpdb->prefix . 'products';
+    $raw_table   = $wpdb->prefix . 'raw_material';
+    $prod_table  = $wpdb->prefix . 'products';
+    $audit_table = $wpdb->prefix . 'raw_mat_audit';
 
+    // 1. Raw Material Log List table body
     $logs = $wpdb->get_results( "
         SELECT r.id, r.product_id, p.product_name, r.color, r.quantity, r.log_date, r.created_by, r.Created_dt
         FROM $raw_table r
@@ -896,6 +898,106 @@ if ( strpos( $view, 'list-raw-material' ) !== false ) {
     }
     $tbody .= '</tbody>';
     $content = preg_replace_callback( '/<tbody class="ligth-body">.*?<\/tbody>/s', function() use ($tbody) { return $tbody; }, $content );
+
+    // 2. Total Stock & Accordion Audit Trail table body
+    $stock_summaries = $wpdb->get_results( "
+        SELECT 
+            a.product_id, 
+            COALESCE(p.product_name, 'Unknown Product') AS product_name, 
+            COALESCE(a.color, '') AS color, 
+            SUM(CASE WHEN a.txn_type = 'IN' THEN a.quantity ELSE -a.quantity END) AS total_stock
+        FROM $audit_table a
+        LEFT JOIN $prod_table p ON a.product_id = p.id
+        GROUP BY a.product_id, COALESCE(a.color, '')
+        ORDER BY p.product_name ASC, a.color ASC
+    " );
+
+    $stock_tbody = '<tbody class="total-stock-body">';
+    if ( ! empty( $stock_summaries ) ) {
+        foreach ( $stock_summaries as $s_idx => $stock_item ) {
+            $row_id = 'audit-collapse-' . esc_attr( $stock_item->product_id ) . '-' . esc_attr( sanitize_title( $stock_item->color ) );
+            $color_badge_html = get_color_badge_html( $stock_item->color );
+            $formatted_stock = number_format( (float) $stock_item->total_stock, 2 );
+
+            // Fetch audit records for this product + color
+            $audits = $wpdb->get_results( $wpdb->prepare( "
+                SELECT id, parent_id, txn_type, quantity, entry_date, created_at, created_by
+                FROM $audit_table
+                WHERE product_id = %d AND (color = %s OR (color IS NULL AND %s = ''))
+                ORDER BY entry_date DESC, id DESC
+            ", $stock_item->product_id, $stock_item->color, $stock_item->color ) );
+
+            $stock_tbody .= '<tr>';
+            $stock_tbody .= '<td class="text-center">';
+            $stock_tbody .= '<button type="button" class="btn btn-sm btn-outline-primary btn-accordion-toggle" data-target="#' . esc_attr( $row_id ) . '" title="View Audit History">';
+            $stock_tbody .= '<i class="las la-angle-down accordion-icon"></i>';
+            $stock_tbody .= '</button>';
+            $stock_tbody .= '</td>';
+            $stock_tbody .= '<td class="font-weight-bold text-dark">' . esc_html( $stock_item->product_name ) . '</td>';
+            $stock_tbody .= '<td>' . $color_badge_html . '</td>';
+            $stock_tbody .= '<td>' . esc_html( $formatted_stock ) . '</td>';
+            $stock_tbody .= '<td class="text-right pr-4">';
+            $stock_tbody .= '<button type="button" class="btn btn-sm btn-warning text-white font-weight-bold px-3 py-1 btn-release-stock" ';
+            $stock_tbody .= 'data-product-id="' . esc_attr( $stock_item->product_id ) . '" ';
+            $stock_tbody .= 'data-product-name="' . esc_attr( $stock_item->product_name ) . '" ';
+            $stock_tbody .= 'data-color="' . esc_attr( $stock_item->color ) . '" ';
+            $stock_tbody .= 'data-color-html="' . esc_attr( $color_badge_html ) . '" ';
+            $stock_tbody .= 'data-stock="' . esc_attr( $formatted_stock ) . '">';
+            $stock_tbody .= '<i class="las la-minus-circle mr-1"></i>Release Stock';
+            $stock_tbody .= '</button>';
+            $stock_tbody .= '</td>';
+            $stock_tbody .= '</tr>';
+
+            // Accordion Row
+            $stock_tbody .= '<tr id="' . esc_attr( $row_id ) . '" class="audit-collapse-row" style="display: none;">';
+            $stock_tbody .= '<td colspan="5" class="bg-light p-3">';
+            $stock_tbody .= '<div class="table-responsive rounded mb-0">';
+            $stock_tbody .= '<table class="data-table table mb-0 tbl-server-info">';
+            $stock_tbody .= '<thead class="bg-white text-uppercase">';
+            $stock_tbody .= '<tr class="ligth ligth-data">';
+            $stock_tbody .= '<th>Audit ID</th>';
+            $stock_tbody .= '<th>Entry Date</th>';
+            $stock_tbody .= '<th>Logged Date & Time</th>';
+            $stock_tbody .= '<th>Type</th>';
+            $stock_tbody .= '<th>Quantity</th>';
+            $stock_tbody .= '<th>Logged By</th>';
+            $stock_tbody .= '</tr>';
+            $stock_tbody .= '</thead>';
+            $stock_tbody .= '<tbody>';
+
+            if ( ! empty( $audits ) ) {
+                foreach ( $audits as $audit ) {
+                    $entry_dt = ! empty( $audit->entry_date ) ? date( 'M d, Y', strtotime( $audit->entry_date ) ) : 'N/A';
+                    $created_dt = ! empty( $audit->created_at ) ? date( 'M d, Y h:i A', strtotime( $audit->created_at ) ) : 'N/A';
+                    $is_in = strtoupper( $audit->txn_type ) === 'IN';
+                    $type_badge = $is_in ? '<span class="badge badge-success px-2 py-1"><i class="las la-arrow-down mr-1"></i>IN</span>' : '<span class="badge badge-danger px-2 py-1"><i class="las la-arrow-up mr-1"></i>OUT</span>';
+                    $qty_formatted = $is_in ? '<span class="text-success font-weight-bold">+' . esc_html( number_format( (float) $audit->quantity, 2 ) ) . '</span>' : '<span class="text-danger font-weight-bold">-' . esc_html( number_format( (float) $audit->quantity, 2 ) ) . '</span>';
+
+                    $stock_tbody .= '<tr>';
+                    $stock_tbody .= '<td class="text-muted" style="font-size:12px;">#' . esc_html( $audit->id ) . '</td>';
+                    $stock_tbody .= '<td>' . esc_html( $entry_dt ) . '</td>';
+                    $stock_tbody .= '<td>' . esc_html( $created_dt ) . '</td>';
+                    $stock_tbody .= '<td>' . $type_badge . '</td>';
+                    $stock_tbody .= '<td>' . $qty_formatted . '</td>';
+                    $stock_tbody .= '<td>' . esc_html( $audit->created_by ) . '</td>';
+                    $stock_tbody .= '</tr>';
+                }
+            } else {
+                $stock_tbody .= '<tr><td colspan="6" class="text-center py-3">No audit records found.</td></tr>';
+            }
+
+            $stock_tbody .= '</tbody>';
+            $stock_tbody .= '</table>';
+            $stock_tbody .= '</div>';
+            $stock_tbody .= '</td>';
+            $stock_tbody .= '</tr>';
+        }
+    } else {
+        $stock_tbody .= '<tr><td colspan="5" class="text-center py-4 text-muted">No raw material stock entries available yet.</td></tr>';
+    }
+    $stock_tbody .= '</tbody>';
+
+    $content = preg_replace_callback( '/<tbody class="total-stock-body">.*?<\/tbody>/s', function() use ($stock_tbody) { return $stock_tbody; }, $content );
 }
 
 // Render Dynamic Real-Time Production Logs from wp_fin_prod_log

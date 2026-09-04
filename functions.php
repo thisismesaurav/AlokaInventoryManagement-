@@ -2339,6 +2339,70 @@ function posdash_ensure_color_schema() {
 }
 add_action( 'init', 'posdash_ensure_color_schema' );
 
+/**
+ * Ensure wp_raw_mat_audit table exists and backfill existing parent entries
+ */
+function posdash_ensure_raw_mat_audit_schema() {
+    global $wpdb;
+    $charset_collate = $wpdb->get_charset_collate();
+    $table_audit  = $wpdb->prefix . 'raw_mat_audit';
+    $table_parent = $wpdb->prefix . 'raw_material';
+
+    $table_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table_audit ) );
+
+    if ( ! $table_exists ) {
+        $sql = "CREATE TABLE $table_audit (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            parent_id bigint(20) DEFAULT NULL,
+            product_id bigint(20) NOT NULL,
+            color varchar(100) DEFAULT NULL,
+            txn_type varchar(10) NOT NULL DEFAULT 'IN',
+            quantity decimal(10,2) NOT NULL DEFAULT '0.00',
+            entry_date date NOT NULL DEFAULT '0000-00-00',
+            created_at datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+            created_by varchar(100) NOT NULL DEFAULT '',
+            PRIMARY KEY  (id),
+            KEY parent_id (parent_id),
+            KEY product_color (product_id, color)
+        ) $charset_collate;";
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        dbDelta( $sql );
+
+        $fk_check = $wpdb->get_results( "SELECT * FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = 'fk_raw_mat_audit_parent' AND CONSTRAINT_SCHEMA = DATABASE()" );
+        if ( empty( $fk_check ) ) {
+            $wpdb->query( "ALTER TABLE $table_audit ADD CONSTRAINT fk_raw_mat_audit_parent FOREIGN KEY (parent_id) REFERENCES $table_parent (id) ON DELETE SET NULL" );
+        }
+    }
+
+    // Backfill: Ensure all parent wp_raw_material entries have corresponding IN audit records
+    $missing_parents = $wpdb->get_results( "
+        SELECT r.id, r.product_id, r.color, r.quantity, r.log_date, r.Created_dt, r.created_by
+        FROM $table_parent r
+        LEFT JOIN $table_audit a ON r.id = a.parent_id
+        WHERE a.id IS NULL
+    " );
+
+    if ( ! empty( $missing_parents ) ) {
+        foreach ( $missing_parents as $parent ) {
+            $wpdb->insert(
+                $table_audit,
+                array(
+                    'parent_id'  => $parent->id,
+                    'product_id' => $parent->product_id,
+                    'color'      => $parent->color,
+                    'txn_type'   => 'IN',
+                    'quantity'   => $parent->quantity,
+                    'entry_date' => $parent->log_date,
+                    'created_at' => $parent->Created_dt,
+                    'created_by' => $parent->created_by,
+                )
+            );
+        }
+    }
+}
+add_action( 'init', 'posdash_ensure_raw_mat_audit_schema' );
+
 add_action( 'wp_ajax_get_raw_material_colors', 'posdash_get_raw_material_colors' );
 function posdash_get_raw_material_colors() {
     if ( ! is_user_logged_in() ) {
@@ -2411,22 +2475,108 @@ function posdash_save_raw_material_log() {
     
     $current_user = wp_get_current_user();
     $username = $current_user->exists() ? $current_user->user_login : 'admin';
+    $now = current_time( 'mysql' );
     
-    $wpdb->insert(
+    $inserted = $wpdb->insert(
         $wpdb->prefix . 'raw_material',
         array(
             'log_date'        => $date,
             'product_id'      => $prod_id,
             'color'           => $color,
             'quantity'        => $qty,
-            'Created_dt'      => current_time( 'mysql' ),
-            'Last_upd_dt'     => current_time( 'mysql' ),
+            'Created_dt'      => $now,
+            'Last_upd_dt'     => $now,
             'created_by'      => $username,
             'Last_updated_by' => $username,
         )
     );
+
+    if ( $inserted ) {
+        $parent_id = $wpdb->insert_id;
+        $wpdb->insert(
+            $wpdb->prefix . 'raw_mat_audit',
+            array(
+                'parent_id'  => $parent_id,
+                'product_id' => $prod_id,
+                'color'      => $color,
+                'txn_type'   => 'IN',
+                'quantity'   => $qty,
+                'entry_date' => $date,
+                'created_at' => $now,
+                'created_by' => $username,
+            )
+        );
+    }
     
     wp_send_json_success( 'Raw material logged successfully.' );
+}
+
+add_action( 'wp_ajax_release_raw_material_stock', 'posdash_release_raw_material_stock' );
+function posdash_release_raw_material_stock() {
+    if ( ! is_user_logged_in() ) {
+        wp_send_json_error( 'Authentication required.', 403 );
+        return;
+    }
+    check_ajax_referer( 'posdash_ajax_action', 'nonce' );
+    global $wpdb;
+
+    $prod_id = isset( $_POST['product_id'] ) ? intval( wp_unslash( $_POST['product_id'] ) ) : 0;
+    $color   = isset( $_POST['color'] ) ? sanitize_text_field( wp_unslash( $_POST['color'] ) ) : '';
+    $qty     = isset( $_POST['quantity'] ) ? floatval( wp_unslash( $_POST['quantity'] ) ) : 0.00;
+    $date    = isset( $_POST['release_date'] ) ? sanitize_text_field( wp_unslash( $_POST['release_date'] ) ) : '';
+
+    if ( empty( $date ) || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) || ! strtotime( $date ) ) {
+        $date = current_time( 'Y-m-d' );
+    }
+
+    if ( $prod_id <= 0 || $qty <= 0 ) {
+        wp_send_json_error( 'Please enter a valid quantity to release.' );
+        return;
+    }
+
+    $audit_table = $wpdb->prefix . 'raw_mat_audit';
+
+    // Calculate current available stock for this product + color
+    $available_stock = (float) $wpdb->get_var( $wpdb->prepare( "
+        SELECT SUM(CASE WHEN txn_type = 'IN' THEN quantity ELSE -quantity END)
+        FROM $audit_table
+        WHERE product_id = %d AND (color = %s OR (color IS NULL AND %s = ''))
+    ", $prod_id, $color, $color ) );
+
+    if ( $qty > $available_stock ) {
+        wp_send_json_error( sprintf( 'Cannot release %.2f units. Current available stock is %.2f.', $qty, $available_stock ) );
+        return;
+    }
+
+    $current_user = wp_get_current_user();
+    $username = $current_user->exists() ? $current_user->user_login : 'admin';
+    $now = current_time( 'mysql' );
+
+    $inserted = $wpdb->insert(
+        $audit_table,
+        array(
+            'parent_id'  => null,
+            'product_id' => $prod_id,
+            'color'      => $color,
+            'txn_type'   => 'OUT',
+            'quantity'   => $qty,
+            'entry_date' => $date,
+            'created_at' => $now,
+            'created_by' => $username,
+        )
+    );
+
+    if ( ! $inserted ) {
+        wp_send_json_error( 'Failed to record stock release.' );
+        return;
+    }
+
+    $new_stock = $available_stock - $qty;
+
+    wp_send_json_success( array(
+        'message'   => 'Stock released successfully.',
+        'new_stock' => number_format( $new_stock, 2 ),
+    ) );
 }
 
 add_action( 'wp_ajax_get_raw_material_logs', 'posdash_get_raw_material_logs' );
