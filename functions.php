@@ -1250,10 +1250,10 @@ function posdash_search_products() {
 
     $query = "
         SELECT p.id, p.product_name as name, 
-               COALESCE(c.name, p.category) as category, 
+               COALESCE(NULLIF(c.name, ''), p.category) as category, 
                p.cost 
         FROM $prod_table p
-        LEFT JOIN $cat_table c ON (p.category = c.id OR p.category = c.name)
+        LEFT JOIN $cat_table c ON (p.category = c.id OR p.category = c.name OR CAST(p.category AS UNSIGNED) = c.id)
         LEFT JOIN $type_table t ON p.product_type = t.id
         $where_sql 
         ORDER BY p.product_name ASC 
@@ -1289,10 +1289,10 @@ function posdash_get_daily_logs() {
     $cat_table  = $wpdb->prefix . 'prod_category';
     
     $results = $wpdb->get_results( $wpdb->prepare( "
-        SELECT l.id, p.product_name, COALESCE(c.name, p.category) as category, l.product_id, l.quantity_produced, l.unit_labor_cost_snapshot, l.total_labor_payout, l.Created_dt, l.produce_date
+        SELECT l.id, p.product_name, COALESCE(NULLIF(c.name, ''), p.category) as category, l.product_id, l.quantity_produced, l.unit_labor_cost_snapshot, l.total_labor_payout, l.Created_dt, l.produce_date
         FROM $log_table l
         LEFT JOIN $prod_table p ON l.product_id = p.id
-        LEFT JOIN $cat_table c ON (p.category = c.id OR p.category = c.name)
+        LEFT JOIN $cat_table c ON (p.category = c.id OR p.category = c.name OR CAST(p.category AS UNSIGNED) = c.id)
         WHERE l.employee_id = %d AND l.produce_date = %s
         ORDER BY l.id DESC
     ", $emp_id, $date ) );
@@ -2276,10 +2276,10 @@ function posdash_search_raw_material_products() {
 
     $query = "
         SELECT p.id, p.product_name as name, 
-               COALESCE(c.name, p.category) as category, 
+               COALESCE(NULLIF(c.name, ''), p.category) as category, 
                p.cost 
         FROM $prod_table p
-        LEFT JOIN $cat_table c ON (p.category = c.id OR p.category = c.name)
+        LEFT JOIN $cat_table c ON (p.category = c.id OR p.category = c.name OR CAST(p.category AS UNSIGNED) = c.id)
         LEFT JOIN $type_table t ON p.product_type = t.id
         $where_sql 
         ORDER BY p.product_name ASC 
@@ -2802,10 +2802,10 @@ function posdash_get_raw_material_logs() {
     $cat_table  = $wpdb->prefix . 'prod_category';
     
     $results = $wpdb->get_results( $wpdb->prepare( "
-        SELECT r.id, r.product_id, p.product_name, COALESCE(c.name, p.category) as category, r.color, r.quantity, r.log_date, r.created_by, r.Created_dt
+        SELECT r.id, r.product_id, p.product_name, COALESCE(NULLIF(c.name, ''), p.category) as category, r.color, r.quantity, r.log_date, r.created_by, r.Created_dt
         FROM $raw_table r
         LEFT JOIN $prod_table p ON r.product_id = p.id
-        LEFT JOIN $cat_table c ON (p.category = c.id OR p.category = c.name)
+        LEFT JOIN $cat_table c ON (p.category = c.id OR p.category = c.name OR CAST(p.category AS UNSIGNED) = c.id)
         WHERE r.log_date = %s
         ORDER BY r.id DESC
     ", $date ) );

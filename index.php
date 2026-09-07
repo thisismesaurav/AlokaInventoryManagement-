@@ -533,7 +533,7 @@ if ( strpos( $view, 'list-product' ) !== false ) {
         SELECT p.*, t.Type as type_name, c.name as category_name
         FROM {$wpdb->prefix}products p
         LEFT JOIN {$wpdb->prefix}product_type t ON p.product_type = t.id
-        LEFT JOIN {$wpdb->prefix}prod_category c ON (p.category = c.id OR p.category = c.name)
+        LEFT JOIN {$wpdb->prefix}prod_category c ON (p.category = c.id OR p.category = c.name OR CAST(p.category AS UNSIGNED) = c.id)
         ORDER BY p.id DESC
     " );
     $tbody = '<tbody class="ligth-body">';
@@ -1098,15 +1098,17 @@ if ( strpos( $view, 'list-production-log' ) !== false ) {
     $log_table  = $wpdb->prefix . 'fin_prod_log';
     $emp_table  = $wpdb->prefix . 'employee';
     $prod_table = $wpdb->prefix . 'products';
+    $cat_table  = $wpdb->prefix . 'prod_category';
 
     $logs = $wpdb->get_results( "
         SELECT l.id, l.employee_id, e.name as employee_name, e.image as employee_image,
-               l.product_id, p.product_name, p.category, l.quantity_produced,
+               l.product_id, p.product_name, COALESCE(NULLIF(c.name, ''), p.category) AS category, l.quantity_produced,
                l.unit_labor_cost_snapshot, l.total_labor_payout, l.Created_dt, l.produce_date, l.created_by,
                u.user_login as logged_by_name
         FROM $log_table l
         LEFT JOIN $emp_table e ON l.employee_id = e.id
         LEFT JOIN $prod_table p ON l.product_id = p.id
+        LEFT JOIN $cat_table c ON (p.category = c.id OR p.category = c.name OR CAST(p.category AS UNSIGNED) = c.id)
         LEFT JOIN {$wpdb->prefix}users u ON l.created_by = u.ID
         ORDER BY l.produce_date DESC, l.id DESC
     " );
@@ -1159,14 +1161,16 @@ if ( strpos( $view, 'report-employee' ) !== false ) {
     $log_table  = $wpdb->prefix . 'fin_prod_log';
     $emp_table  = $wpdb->prefix . 'employee';
     $prod_table = $wpdb->prefix . 'products';
+    $cat_table  = $wpdb->prefix . 'prod_category';
 
     $logs = $wpdb->get_results( "
         SELECT l.id, l.employee_id, e.name as employee_name, e.id as emp_real_id,
-               l.product_id, p.product_name, p.category, l.quantity_produced,
+               l.product_id, p.product_name, COALESCE(NULLIF(c.name, ''), p.category) AS category, l.quantity_produced,
                l.unit_labor_cost_snapshot, l.total_labor_payout, l.Created_dt, l.produce_date
         FROM $log_table l
         LEFT JOIN $emp_table e ON l.employee_id = e.id
         LEFT JOIN $prod_table p ON l.product_id = p.id
+        LEFT JOIN $cat_table c ON (p.category = c.id OR p.category = c.name OR CAST(p.category AS UNSIGNED) = c.id)
         ORDER BY l.id DESC
     " );
 
@@ -1214,11 +1218,12 @@ if ( strpos( $view, 'report-finished-product' ) !== false ) {
 
     $logs = $wpdb->get_results( "
         SELECT l.id, l.employee_id, e.name as employee_name,
-               l.product_id, p.product_name, p.category, l.quantity_produced,
+               l.product_id, p.product_name, COALESCE(NULLIF(c.name, ''), p.category) AS category, l.quantity_produced,
                l.unit_labor_cost_snapshot, l.total_labor_payout, l.Created_dt, l.produce_date
         FROM $log_table l
         LEFT JOIN $emp_table e ON l.employee_id = e.id
         LEFT JOIN $prod_table p ON l.product_id = p.id
+        LEFT JOIN $cat_table c ON (p.category = c.id OR p.category = c.name OR CAST(p.category AS UNSIGNED) = c.id)
         ORDER BY l.id DESC
     " );
 
@@ -1255,7 +1260,12 @@ if ( strpos( $view, 'report-finished-product' ) !== false ) {
     }
     $content = str_replace( '<!-- CATEGORY_OPTIONS -->', $cat_options, $content );
 
-    $products = $wpdb->get_results( "SELECT DISTINCT id, product_name, category FROM $prod_table ORDER BY product_name ASC" );
+    $products = $wpdb->get_results( "
+        SELECT DISTINCT p.id, p.product_name, COALESCE(NULLIF(c.name, ''), p.category) AS category
+        FROM $prod_table p
+        LEFT JOIN $cat_table c ON (p.category = c.id OR p.category = c.name OR CAST(p.category AS UNSIGNED) = c.id)
+        ORDER BY p.product_name ASC
+    " );
     $prod_options = '';
     if ( ! empty( $products ) ) {
         foreach ( $products as $prod ) {
@@ -1315,10 +1325,10 @@ if ( strpos( $view, 'report-salary' ) !== false ) {
         }
     }
 
-    // All individual logs for modal use (output as JS variable)
+    $cat_table  = $wpdb->prefix . 'prod_category';
     $all_logs = $wpdb->get_results( "
         SELECT l.id, l.employee_id, e.name AS emp_name,
-               l.product_id, p.product_name, p.category,
+               l.product_id, p.product_name, COALESCE(NULLIF(c.name, ''), p.category) AS category,
                l.quantity_produced, l.unit_labor_cost_snapshot,
                l.total_labor_payout, l.produce_date,
                YEAR(l.produce_date)  AS yr,
@@ -1326,6 +1336,7 @@ if ( strpos( $view, 'report-salary' ) !== false ) {
         FROM $log_table l
         INNER JOIN $emp_table e  ON l.employee_id = e.id
         INNER JOIN $prod_table p ON l.product_id  = p.id
+        LEFT JOIN $cat_table c   ON (p.category = c.id OR p.category = c.name OR CAST(p.category AS UNSIGNED) = c.id)
         ORDER BY l.produce_date ASC
     " );
 
@@ -1455,7 +1466,7 @@ if ( strpos( $view, 'add-product' ) !== false ) {
         SELECT p.*, t.Type as type_name, c.name as category_name
         FROM {$wpdb->prefix}products p
         LEFT JOIN {$wpdb->prefix}product_type t ON p.product_type = t.id
-        LEFT JOIN {$wpdb->prefix}prod_category c ON (p.category = c.id OR p.category = c.name)
+        LEFT JOIN {$wpdb->prefix}prod_category c ON (p.category = c.id OR p.category = c.name OR CAST(p.category AS UNSIGNED) = c.id)
         WHERE DATE(p.Created_dt) = %s
         ORDER BY p.id DESC
     ", $today ) );
