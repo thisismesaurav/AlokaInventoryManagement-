@@ -1122,6 +1122,11 @@ if ( strpos( $view, 'list-production-log' ) !== false ) {
             $total_payout = number_format( (float) $log->total_labor_payout, 2 );
             $produce_date = ! empty( $log->produce_date ) ? date( 'M d, Y', strtotime( $log->produce_date ) ) : 'N/A';
             
+            $delete_url = wp_nonce_url(
+                home_url( '/?action=delete_production_log&id=' . $log->id ),
+                'posdash_delete_delete_production_log_' . $log->id
+            );
+
             $tbody .= '<tr>';
             $tbody .= '<td class="text-muted" style="font-size:12px;">#' . esc_html( $log->id ) . '</td>';
             $tbody .= '<td>' . esc_html( $produce_date ) . '</td>';
@@ -1134,13 +1139,17 @@ if ( strpos( $view, 'list-production-log' ) !== false ) {
             $logged_by = ! empty( $log->logged_by_name ) ? $log->logged_by_name : ( ! empty( $log->created_by ) ? $log->created_by : 'System' );
             $tbody .= '<td>' . esc_html( $logged_by ) . '</td>';
             $tbody .= '<td>' . esc_html( date( 'M d, Y h:i A', strtotime( $log->Created_dt ) ) ) . '</td>';
+            $tbody .= '<td class="text-right pr-4">';
+            $tbody .= '<a class="badge bg-warning mr-2 btn-delete-production-log" data-toggle="tooltip" data-placement="top" title="Delete Logged Work" href="' . esc_url( $delete_url ) . '" onclick="if(!window.currentIsAdmin){ alert(\'This action is only allowed for administrator.\'); return false; } return confirm(\'Warning: Are you sure you want to delete this logged work record (#\' + ' . intval( $log->id ) . ' + \')? This action cannot be undone.\');"><i class="ri-delete-bin-line mr-0"></i></a>';
+            $tbody .= '</td>';
             $tbody .= '</tr>';
         }
     } else {
-        $tbody .= '<tr><td colspan="10" class="text-center">No production records found.</td></tr>';
+        $tbody .= '<tr><td colspan="11" class="text-center">No production records found.</td></tr>';
     }
     $tbody .= '</tbody>';
     $content = preg_replace_callback( '/<tbody class="ligth-body">.*?<\/tbody>/s', function() use ($tbody) { return $tbody; }, $content );
+    $content = '<script>window.currentIsAdmin = ' . ( current_user_can( 'administrator' ) ? 'true' : 'false' ) . ';</script>' . $content;
 
     // Fetch unique employee names to populate the datalist
     $employees = $wpdb->get_results( "SELECT DISTINCT name FROM $emp_table ORDER BY name ASC" );

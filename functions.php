@@ -487,6 +487,9 @@ function inventory_management_handle_submissions() {
         }
 
         if ( 'delete_production_log' === $action && $id > 0 ) {
+            if ( ! current_user_can( 'administrator' ) ) {
+                wp_die( esc_html__( 'This action is only allowed for administrator.', 'inventory-management' ) );
+            }
             $wpdb->delete( $wpdb->prefix . 'fin_prod_log', array( 'id' => $id ) );
             wp_redirect( home_url( '/list-production-log' ) );
             exit;
