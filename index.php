@@ -233,12 +233,12 @@ if ( strpos( $view, 'index' ) !== false ) {
     
     $logs_today = (int) $wpdb->get_var( $wpdb->prepare( "
         SELECT 
-            (SELECT COUNT(*) FROM {$wpdb->prefix}fin_prod_log WHERE DATE(Created_dt) = %s) + 
-            (SELECT COUNT(*) FROM {$wpdb->prefix}raw_material WHERE DATE(Created_dt) = %s)
+            (SELECT COUNT(*) FROM {$wpdb->prefix}fin_prod_log WHERE COALESCE(NULLIF(produce_date, '0000-00-00'), DATE(Created_dt)) = %s) + 
+            (SELECT COUNT(*) FROM {$wpdb->prefix}raw_material WHERE COALESCE(NULLIF(log_date, '0000-00-00'), DATE(Created_dt)) = %s)
     ", $today_date, $today_date ) );
     
     $labour_today = (float) $wpdb->get_var( $wpdb->prepare( "
-        SELECT SUM(total_labor_payout) FROM {$wpdb->prefix}fin_prod_log WHERE DATE(Created_dt) = %s
+        SELECT SUM(total_labor_payout) FROM {$wpdb->prefix}fin_prod_log WHERE COALESCE(NULLIF(produce_date, '0000-00-00'), DATE(Created_dt)) = %s
     ", $today_date ) );
 
     // 2. Generate Stats Row HTML
