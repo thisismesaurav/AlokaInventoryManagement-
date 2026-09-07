@@ -817,40 +817,69 @@ if ( ! function_exists( 'get_color_badge_html' ) ) {
             return '<span class="badge badge-light border text-muted px-2 py-1">-</span>';
         }
         $c      = strtolower( trim( $color ) );
-        $bg     = '#6c757d';
-        $text   = '#ffffff';
-        $border = 'transparent';
+        $bg     = '#f8f9fa';
+        $text   = '#212529'; // Default black font for color name when no specific dark background exists
+        $border = '#ced4da';
 
         if ( strpos( $c, 'red' ) !== false ) {
-            $bg = '#dc3545'; $text = '#ffffff';
+            $bg = '#dc3545'; $text = '#ffffff'; $border = 'transparent';
         } elseif ( strpos( $c, 'green' ) !== false ) {
-            $bg = '#28a745'; $text = '#ffffff';
+            $bg = '#28a745'; $text = '#ffffff'; $border = 'transparent';
         } elseif ( strpos( $c, 'navy' ) !== false ) {
-            $bg = '#0a192f'; $text = '#ffffff';
+            $bg = '#0a192f'; $text = '#ffffff'; $border = 'transparent';
         } elseif ( strpos( $c, 'blue' ) !== false ) {
-            $bg = '#007bff'; $text = '#ffffff';
-        } elseif ( strpos( $c, 'yellow' ) !== false ) {
-            $bg = '#ffc107'; $text = '#212529';
+            $bg = '#007bff'; $text = '#ffffff'; $border = 'transparent';
         } elseif ( strpos( $c, 'black' ) !== false ) {
-            $bg = '#1a1a1a'; $text = '#ffffff';
+            $bg = '#1a1a1a'; $text = '#ffffff'; $border = 'transparent';
+        } elseif ( strpos( $c, 'grey' ) !== false || strpos( $c, 'gray' ) !== false ) {
+            $bg = '#6c757d'; $text = '#ffffff'; $border = 'transparent';
+        } elseif ( strpos( $c, 'orange' ) !== false ) {
+            $bg = '#fd7e14'; $text = '#ffffff'; $border = 'transparent';
+        } elseif ( strpos( $c, 'pink' ) !== false ) {
+            $bg = '#e83e8c'; $text = '#ffffff'; $border = 'transparent';
+        } elseif ( strpos( $c, 'purple' ) !== false ) {
+            $bg = '#6f42c1'; $text = '#ffffff'; $border = 'transparent';
+        } elseif ( strpos( $c, 'maroon' ) !== false ) {
+            $bg = '#800000'; $text = '#ffffff'; $border = 'transparent';
+        } elseif ( strpos( $c, 'brown' ) !== false ) {
+            $bg = '#795548'; $text = '#ffffff'; $border = 'transparent';
+        } elseif ( strpos( $c, 'teal' ) !== false ) {
+            $bg = '#008080'; $text = '#ffffff'; $border = 'transparent';
+        } elseif ( strpos( $c, 'olive' ) !== false ) {
+            $bg = '#556b2f'; $text = '#ffffff'; $border = 'transparent';
+        } elseif ( strpos( $c, 'yellow' ) !== false ) {
+            $bg = '#ffc107'; $text = '#212529'; $border = 'transparent';
         } elseif ( strpos( $c, 'white' ) !== false ) {
             $bg = '#ffffff'; $text = '#212529'; $border = '#ced4da';
-        } elseif ( strpos( $c, 'grey' ) !== false || strpos( $c, 'gray' ) !== false ) {
-            $bg = '#6c757d'; $text = '#ffffff';
-        } elseif ( strpos( $c, 'orange' ) !== false ) {
-            $bg = '#fd7e14'; $text = '#ffffff';
-        } elseif ( strpos( $c, 'pink' ) !== false ) {
-            $bg = '#e83e8c'; $text = '#ffffff';
-        } elseif ( strpos( $c, 'purple' ) !== false ) {
-            $bg = '#6f42c1'; $text = '#ffffff';
-        } elseif ( strpos( $c, 'maroon' ) !== false ) {
-            $bg = '#800000'; $text = '#ffffff';
-        } else {
-            $clean_bg = strtolower( preg_replace( '/[^a-z0-9#]/', '', $color ) );
-            if ( ! empty( $clean_bg ) ) {
-                $bg = $clean_bg;
+        } elseif ( strpos( $c, 'gold' ) !== false ) {
+            $bg = '#ffd700'; $text = '#212529'; $border = 'transparent';
+        } elseif ( strpos( $c, 'lime' ) !== false ) {
+            $bg = '#00ff00'; $text = '#212529'; $border = 'transparent';
+        } elseif ( strpos( $c, 'cyan' ) !== false ) {
+            $bg = '#00ffff'; $text = '#212529'; $border = 'transparent';
+        } elseif ( strpos( $c, 'beige' ) !== false || strpos( $c, 'cream' ) !== false || strpos( $c, 'ivory' ) !== false ) {
+            $bg = '#f5f5dc'; $text = '#212529'; $border = '#ced4da';
+        } elseif ( strpos( $c, 'silver' ) !== false ) {
+            $bg = '#c0c0c0'; $text = '#212529'; $border = 'transparent';
+        } elseif ( preg_match( '/^#([a-f0-9]{3}){1,2}$/i', $c ) ) {
+            $hex = ltrim( $c, '#' );
+            if ( strlen( $hex ) === 3 ) {
+                $r = hexdec( str_repeat( substr( $hex, 0, 1 ), 2 ) );
+                $g = hexdec( str_repeat( substr( $hex, 1, 1 ), 2 ) );
+                $b = hexdec( str_repeat( substr( $hex, 2, 1 ), 2 ) );
+            } else {
+                $r = hexdec( substr( $hex, 0, 2 ) );
+                $g = hexdec( substr( $hex, 2, 2 ) );
+                $b = hexdec( substr( $hex, 4, 2 ) );
             }
-            $text = '#ffffff';
+            $luminance = ( $r * 299 + $g * 587 + $b * 114 ) / 1000;
+            $bg     = $c;
+            $text   = ( $luminance > 128 ) ? '#212529' : '#ffffff';
+            $border = ( $luminance > 220 ) ? '#ced4da' : 'transparent';
+        } else {
+            $bg     = '#f8f9fa';
+            $text   = '#212529';
+            $border = '#ced4da';
         }
 
         return sprintf(
