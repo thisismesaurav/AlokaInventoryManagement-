@@ -1251,7 +1251,7 @@ if ( strpos( $view, 'report-finished-product' ) !== false ) {
     $tbody .= '</tbody>';
     $content = preg_replace_callback( '/<tbody class="ligth-body">.*?<\/tbody>/s', function() use ($tbody) { return $tbody; }, $content );
 
-    $categories = $wpdb->get_results( "SELECT * FROM $cat_table ORDER BY name ASC" );
+    $categories = $wpdb->get_results( "SELECT * FROM $cat_table WHERE LOWER(TRIM(name)) != 'raw material' ORDER BY name ASC" );
     $cat_options = '';
     if ( ! empty( $categories ) ) {
         foreach ( $categories as $cat ) {
@@ -1264,6 +1264,7 @@ if ( strpos( $view, 'report-finished-product' ) !== false ) {
         SELECT DISTINCT p.id, p.product_name, COALESCE(NULLIF(c.name, ''), p.category) AS category
         FROM $prod_table p
         LEFT JOIN $cat_table c ON (p.category = c.id OR p.category = c.name OR CAST(p.category AS UNSIGNED) = c.id)
+        WHERE (c.name IS NULL OR LOWER(TRIM(c.name)) != 'raw material')
         ORDER BY p.product_name ASC
     " );
     $prod_options = '';
