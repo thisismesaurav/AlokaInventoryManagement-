@@ -12,6 +12,31 @@
                 </div>
             </div>
             <div class="col-lg-12">
+                <!-- Search & Page Size Controls for Total Stock -->
+                <div class="row align-items-center justify-content-between mb-3">
+                    <div class="col-md-6 col-sm-12 d-flex align-items-center mb-2 mb-md-0">
+                        <label class="mb-0 mr-2 text-muted font-weight-bold" style="white-space: nowrap; font-size: 14px;">Show</label>
+                        <select id="total-stock-page-size" class="form-control form-control-sm custom-select" style="width: 80px; display: inline-block;">
+                            <option value="10" selected>10</option>
+                            <option value="15">15</option>
+                            <option value="20">20</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="all">All</option>
+                        </select>
+                        <span class="ml-2 text-muted font-weight-bold" style="white-space: nowrap; font-size: 14px;">entries</span>
+                    </div>
+                    <div class="col-md-6 col-sm-12 d-flex justify-content-md-end justify-content-start">
+                        <div class="input-group style-search" style="max-width: 300px;">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text bg-transparent border-right-0"><i class="ri-search-line"></i></span>
+                            </div>
+                            <input type="text" id="total-stock-search" class="form-control border-left-0" placeholder="Search Total Stock..." style="border-radius: 0 4px 4px 0;">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="table-responsive rounded mb-3">
                     <table class="data-table table mb-0 tbl-server-info">
                         <thead class="bg-white text-uppercase">
@@ -28,6 +53,22 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Pagination Footer for Total Stock -->
+                <div class="row align-items-center justify-content-between mt-2 mb-4">
+                    <div class="col-md-6 col-sm-12 mb-2 mb-md-0">
+                        <div id="total-stock-entries-info" class="text-muted font-weight-bold" style="font-size: 13px;">
+                            Showing 0 to 0 of 0 entries
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-sm-12 d-flex justify-content-md-end justify-content-start">
+                        <nav aria-label="Total stock pagination">
+                            <ul id="total-stock-pagination" class="pagination pagination-sm mb-0">
+                                <!-- Dynamically rendered -->
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
             </div>
 
             <!-- Raw Material Log List Section (Bottom) -->
@@ -40,24 +81,65 @@
                 </div>
             </div>
             <div class="col-lg-12">
+                <!-- Search & Page Size Controls for Raw Material Log List -->
+                <div class="row align-items-center justify-content-between mb-3">
+                    <div class="col-md-6 col-sm-12 d-flex align-items-center mb-2 mb-md-0">
+                        <label class="mb-0 mr-2 text-muted font-weight-bold" style="white-space: nowrap; font-size: 14px;">Show</label>
+                        <select id="raw-log-page-size" class="form-control form-control-sm custom-select" style="width: 80px; display: inline-block;">
+                            <option value="10" selected>10</option>
+                            <option value="15">15</option>
+                            <option value="20">20</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="all">All</option>
+                        </select>
+                        <span class="ml-2 text-muted font-weight-bold" style="white-space: nowrap; font-size: 14px;">entries</span>
+                    </div>
+                    <div class="col-md-6 col-sm-12 d-flex justify-content-md-end justify-content-start">
+                        <div class="input-group style-search" style="max-width: 300px;">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text bg-transparent border-right-0"><i class="ri-search-line"></i></span>
+                            </div>
+                            <input type="text" id="raw-log-search" class="form-control border-left-0" placeholder="Search Log List..." style="border-radius: 0 4px 4px 0;">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="table-responsive rounded mb-3">
-                <table class="data-table table mb-0 tbl-server-info">
-                    <thead class="bg-white text-uppercase">
-                        <tr class="ligth ligth-data">
-                            <th>Log ID</th>
-                            <th>Log Date</th>
-                            <th>Product Name</th>
-                            <th>Color</th>
-                            <th>Quantity Logged</th>
-                            <th>Logged By</th>
-                            <th>Created Date/Time</th>
-                            <th class="text-right pr-4">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody class="ligth-body">
-                        <!-- Data injected via index.php server-side -->
-                    </tbody>
-                </table>
+                    <table class="data-table table mb-0 tbl-server-info">
+                        <thead class="bg-white text-uppercase">
+                            <tr class="ligth ligth-data">
+                                <th>Log ID</th>
+                                <th>Log Date</th>
+                                <th>Product Name</th>
+                                <th>Color</th>
+                                <th>Quantity Logged</th>
+                                <th>Logged By</th>
+                                <th>Created Date/Time</th>
+                                <th class="text-right pr-4">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="ligth-body">
+                            <!-- Data injected via index.php server-side -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination Footer for Raw Material Log List -->
+                <div class="row align-items-center justify-content-between mt-2 mb-4">
+                    <div class="col-md-6 col-sm-12 mb-2 mb-md-0">
+                        <div id="raw-log-entries-info" class="text-muted font-weight-bold" style="font-size: 13px;">
+                            Showing 0 to 0 of 0 entries
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-sm-12 d-flex justify-content-md-end justify-content-start">
+                        <nav aria-label="Raw material log pagination">
+                            <ul id="raw-log-pagination" class="pagination pagination-sm mb-0">
+                                <!-- Dynamically rendered -->
+                            </ul>
+                        </nav>
+                    </div>
                 </div>
             </div>
         </div>
@@ -222,6 +304,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (targetRow) {
                 if (targetRow.style.display === 'none' || targetRow.style.display === '') {
                     targetRow.style.display = 'table-row';
+                    targetRow.dataset.expanded = 'true';
                     if (icon) {
                         icon.classList.remove('la-angle-down');
                         icon.classList.add('la-angle-up');
@@ -230,6 +313,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     toggleBtn.classList.add('btn-primary');
                 } else {
                     targetRow.style.display = 'none';
+                    targetRow.dataset.expanded = 'false';
                     if (icon) {
                         icon.classList.remove('la-angle-up');
                         icon.classList.add('la-angle-down');
@@ -441,5 +525,305 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+
+    // Helper function to render pagination controls UI
+    function renderPaginationControls(ul, currentPage, totalPages, onPageChange) {
+        ul.innerHTML = '';
+        if (totalPages <= 1) return;
+
+        // Previous Button
+        const prevLi = document.createElement('li');
+        prevLi.className = 'page-item' + (currentPage === 1 ? ' disabled' : '');
+        prevLi.innerHTML = '<a class="page-link" href="javascript:void(0);" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a>';
+        if (currentPage > 1) {
+            prevLi.addEventListener('click', function(e) {
+                e.preventDefault();
+                onPageChange(currentPage - 1);
+            });
+        }
+        ul.appendChild(prevLi);
+
+        // Page Numbers calculation
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, startPage + 4);
+        if (endPage - startPage < 4) {
+            startPage = Math.max(1, endPage - 4);
+        }
+
+        if (startPage > 1) {
+            const firstLi = document.createElement('li');
+            firstLi.className = 'page-item';
+            firstLi.innerHTML = '<a class="page-link" href="javascript:void(0);">1</a>';
+            firstLi.addEventListener('click', function(e) {
+                e.preventDefault();
+                onPageChange(1);
+            });
+            ul.appendChild(firstLi);
+
+            if (startPage > 2) {
+                const ellipsisLi = document.createElement('li');
+                ellipsisLi.className = 'page-item disabled';
+                ellipsisLi.innerHTML = '<span class="page-link">...</span>';
+                ul.appendChild(ellipsisLi);
+            }
+        }
+
+        for (let p = startPage; p <= endPage; p++) {
+            const pageLi = document.createElement('li');
+            pageLi.className = 'page-item' + (p === currentPage ? ' active' : '');
+            pageLi.innerHTML = '<a class="page-link" href="javascript:void(0);">' + p + '</a>';
+            if (p !== currentPage) {
+                (function(page) {
+                    pageLi.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        onPageChange(page);
+                    });
+                })(p);
+            }
+            ul.appendChild(pageLi);
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                const ellipsisLi = document.createElement('li');
+                ellipsisLi.className = 'page-item disabled';
+                ellipsisLi.innerHTML = '<span class="page-link">...</span>';
+                ul.appendChild(ellipsisLi);
+            }
+
+            const lastLi = document.createElement('li');
+            lastLi.className = 'page-item';
+            lastLi.innerHTML = '<a class="page-link" href="javascript:void(0);">' + totalPages + '</a>';
+            lastLi.addEventListener('click', function(e) {
+                e.preventDefault();
+                onPageChange(totalPages);
+            });
+            ul.appendChild(lastLi);
+        }
+
+        // Next Button
+        const nextLi = document.createElement('li');
+        nextLi.className = 'page-item' + (currentPage === totalPages ? ' disabled' : '');
+        nextLi.innerHTML = '<a class="page-link" href="javascript:void(0);" aria-label="Next"><span aria-hidden="true">&raquo;</span></a>';
+        if (currentPage < totalPages) {
+            nextLi.addEventListener('click', function(e) {
+                e.preventDefault();
+                onPageChange(currentPage + 1);
+            });
+        }
+        ul.appendChild(nextLi);
+    }
+
+    // 1. Total Stock Table Pagination & Search Controller
+    function initTotalStockPaginationAndSearch() {
+        const tbody = document.querySelector('.total-stock-body');
+        const pageSizeSelect = document.getElementById('total-stock-page-size');
+        const searchInput = document.getElementById('total-stock-search');
+        const infoDiv = document.getElementById('total-stock-entries-info');
+        const paginationUl = document.getElementById('total-stock-pagination');
+
+        if (!tbody || !pageSizeSelect || !searchInput || !infoDiv || !paginationUl) return;
+
+        function getItems() {
+            const rows = Array.from(tbody.children);
+            const items = [];
+            for (let i = 0; i < rows.length; i++) {
+                const mainRow = rows[i];
+                if (!mainRow || mainRow.tagName !== 'TR') continue;
+                if (mainRow.classList.contains('total-stock-no-match-row')) continue;
+                if (mainRow.cells.length === 1 && mainRow.textContent.includes('No raw material stock')) continue;
+
+                let auditRow = null;
+                if (i + 1 < rows.length && rows[i + 1].classList.contains('audit-collapse-row')) {
+                    auditRow = rows[i + 1];
+                    i++;
+                }
+                items.push({ mainRow: mainRow, auditRow: auditRow });
+            }
+            return items;
+        }
+
+        const allItems = getItems();
+        let currentPage = 1;
+
+        function render() {
+            const searchTerm = searchInput.value.trim().toLowerCase();
+
+            const filteredItems = allItems.filter(function(item) {
+                if (!searchTerm) return true;
+                const mainText = item.mainRow.textContent.toLowerCase();
+                const auditText = item.auditRow ? item.auditRow.textContent.toLowerCase() : '';
+                return mainText.indexOf(searchTerm) !== -1 || auditText.indexOf(searchTerm) !== -1;
+            });
+
+            const val = pageSizeSelect.value;
+            const pageSize = val === 'all' ? (filteredItems.length || 1) : parseInt(val, 10);
+            const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
+
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = startIndex + pageSize;
+
+            // Hide all items
+            allItems.forEach(function(item) {
+                item.mainRow.style.display = 'none';
+                if (item.auditRow) item.auditRow.style.display = 'none';
+            });
+
+            // Display active items for current page
+            const currentSlice = filteredItems.slice(startIndex, endIndex);
+            currentSlice.forEach(function(item) {
+                item.mainRow.style.display = '';
+                if (item.auditRow) {
+                    if (item.auditRow.dataset.expanded === 'true') {
+                        item.auditRow.style.display = 'table-row';
+                    } else {
+                        item.auditRow.style.display = 'none';
+                    }
+                }
+            });
+
+            // Update Entries Info Text
+            const total = filteredItems.length;
+            const startRecord = total === 0 ? 0 : startIndex + 1;
+            const endRecord = Math.min(endIndex, total);
+
+            let infoText = 'Showing ' + startRecord + ' to ' + endRecord + ' of ' + total + ' entries';
+            if (searchTerm && total < allItems.length) {
+                infoText += ' (filtered from ' + allItems.length + ' total entries)';
+            }
+            infoDiv.textContent = infoText;
+
+            // Handle "No matching records" row
+            let noMatchRow = tbody.querySelector('.total-stock-no-match-row');
+            if (total === 0 && allItems.length > 0) {
+                if (!noMatchRow) {
+                    noMatchRow = document.createElement('tr');
+                    noMatchRow.className = 'total-stock-no-match-row';
+                    noMatchRow.innerHTML = '<td colspan="5" class="text-center py-4 text-muted">No matching stock records found.</td>';
+                    tbody.appendChild(noMatchRow);
+                }
+                noMatchRow.style.display = '';
+            } else if (noMatchRow) {
+                noMatchRow.style.display = 'none';
+            }
+
+            // Render Pagination Buttons
+            renderPaginationControls(paginationUl, currentPage, totalPages, function(newPage) {
+                currentPage = newPage;
+                render();
+            });
+        }
+
+        pageSizeSelect.addEventListener('change', function() {
+            currentPage = 1;
+            render();
+        });
+
+        searchInput.addEventListener('input', function() {
+            currentPage = 1;
+            render();
+        });
+
+        render();
+    }
+
+    // 2. Raw Material Log List Table Pagination & Search Controller
+    function initRawLogPaginationAndSearch() {
+        const tbody = document.querySelector('.ligth-body');
+        const pageSizeSelect = document.getElementById('raw-log-page-size');
+        const searchInput = document.getElementById('raw-log-search');
+        const infoDiv = document.getElementById('raw-log-entries-info');
+        const paginationUl = document.getElementById('raw-log-pagination');
+
+        if (!tbody || !pageSizeSelect || !searchInput || !infoDiv || !paginationUl) return;
+
+        function getItems() {
+            const rows = Array.from(tbody.children);
+            return rows.filter(function(row) {
+                if (row.tagName !== 'TR') return false;
+                if (row.classList.contains('raw-log-no-match-row')) return false;
+                if (row.cells.length === 1 && row.textContent.includes('No raw material logs')) return false;
+                return true;
+            });
+        }
+
+        const allItems = getItems();
+        let currentPage = 1;
+
+        function render() {
+            const searchTerm = searchInput.value.trim().toLowerCase();
+
+            const filteredItems = allItems.filter(function(row) {
+                if (!searchTerm) return true;
+                return row.textContent.toLowerCase().indexOf(searchTerm) !== -1;
+            });
+
+            const val = pageSizeSelect.value;
+            const pageSize = val === 'all' ? (filteredItems.length || 1) : parseInt(val, 10);
+            const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
+
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = startIndex + pageSize;
+
+            allItems.forEach(function(row) {
+                row.style.display = 'none';
+            });
+
+            const currentSlice = filteredItems.slice(startIndex, endIndex);
+            currentSlice.forEach(function(row) {
+                row.style.display = '';
+            });
+
+            const total = filteredItems.length;
+            const startRecord = total === 0 ? 0 : startIndex + 1;
+            const endRecord = Math.min(endIndex, total);
+
+            let infoText = 'Showing ' + startRecord + ' to ' + endRecord + ' of ' + total + ' entries';
+            if (searchTerm && total < allItems.length) {
+                infoText += ' (filtered from ' + allItems.length + ' total entries)';
+            }
+            infoDiv.textContent = infoText;
+
+            let noMatchRow = tbody.querySelector('.raw-log-no-match-row');
+            if (total === 0 && allItems.length > 0) {
+                if (!noMatchRow) {
+                    noMatchRow = document.createElement('tr');
+                    noMatchRow.className = 'raw-log-no-match-row';
+                    noMatchRow.innerHTML = '<td colspan="8" class="text-center py-4 text-muted">No matching raw material log records found.</td>';
+                    tbody.appendChild(noMatchRow);
+                }
+                noMatchRow.style.display = '';
+            } else if (noMatchRow) {
+                noMatchRow.style.display = 'none';
+            }
+
+            renderPaginationControls(paginationUl, currentPage, totalPages, function(newPage) {
+                currentPage = newPage;
+                render();
+            });
+        }
+
+        pageSizeSelect.addEventListener('change', function() {
+            currentPage = 1;
+            render();
+        });
+
+        searchInput.addEventListener('input', function() {
+            currentPage = 1;
+            render();
+        });
+
+        render();
+    }
+
+    // Initialize pagination and search for both tables
+    initTotalStockPaginationAndSearch();
+    initRawLogPaginationAndSearch();
 });
 </script>
